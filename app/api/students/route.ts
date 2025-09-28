@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Student from "@/models/Student";
+import { authenticateUser, AuthRequest } from "@/lib/auth";
+import { handleError } from "@/lib/utils";
 
 // GET all students
-export async function GET() {
+export async function GET(request: AuthRequest) {
   try {
+    // Check authentication
+    const authError = await authenticateUser(request);
+    if (authError) return authError;
+
     await connectDB();
-    const students = await Student.find({}).select("-__v");
+    const students = await Student.find({})
+      .select("enroll_number name card_number")
+      .lean();
+
     return NextResponse.json(students);
   } catch (error) {
-    console.error("Error fetching students:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
 // POST new student
-export async function POST(request: NextRequest) {
+export async function POST(request: AuthRequest) {
   try {
+    // Check authentication
+    const authError = await authenticateUser(request);
+    if (authError) return authError;
+
     const { enroll_number, name, card_number } = await request.json();
 
     if (!enroll_number || !name) {
@@ -31,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const existingStudent = await Student.findOne({ enroll_number });
+    const existingStudent = await Student.findOne({ enroll_number }).lean();
     if (existingStudent) {
       return NextResponse.json(
         { error: "Student already exists" },
@@ -45,12 +54,11 @@ export async function POST(request: NextRequest) {
       card_number: card_number || "",
     });
 
-    return NextResponse.json(student);
+    return NextResponse.json({
+      message: "Student created successfully",
+      student: student.toJSON()
+    });
   } catch (error) {
-    console.error("Error creating student:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }

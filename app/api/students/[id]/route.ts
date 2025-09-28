@@ -2,23 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Student from "@/models/Student";
 
-interface Props {
-  params: {
-    id: string;
-  };
-}
-
 // GET student by enrollment number
-export async function GET(request: NextRequest, { params }: Props) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await connectDB();
-    const student = await Student.findOne({ enroll_number: params.id }).select("-__v");
-    
+    const student = await Student.findOne({ enroll_number: params.id }).select(
+      "-__v"
+    );
+
     if (!student) {
-      return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
     return NextResponse.json(student);
@@ -32,7 +28,10 @@ export async function GET(request: NextRequest, { params }: Props) {
 }
 
 // PUT update student
-export async function PUT(request: NextRequest, { params }: Props) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const { name, card_number } = await request.json();
     await connectDB();
@@ -44,10 +43,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
     ).select("-__v");
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
     return NextResponse.json(student);
@@ -61,16 +57,18 @@ export async function PUT(request: NextRequest, { params }: Props) {
 }
 
 // DELETE student
-export async function DELETE(request: NextRequest, { params }: Props) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await connectDB();
-    const student = await Student.findOneAndDelete({ enroll_number: params.id });
+    const student = await Student.findOneAndDelete({
+      enroll_number: params.id,
+    });
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
     return NextResponse.json({ message: "Student deleted successfully" });

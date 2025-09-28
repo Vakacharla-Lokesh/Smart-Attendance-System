@@ -143,7 +143,15 @@ interface DataTableProps<TData, TValue> {
   onStatusChange?: (rowIndex: number, status: string) => void
 }
 
-export function DataTable<TData extends { name?: string; course?: string; enrollNo?: string; status?: string }, TValue>({
+interface TableData {
+  id: string;
+  name: string;
+  course: string;
+  enrollNo: string;
+  status?: "present" | "absent" | "leave";
+}
+
+export function DataTable<TData extends TableData, TValue>({
   columns,
   data,
   onStatusChange,
@@ -166,42 +174,47 @@ export function DataTable<TData extends { name?: string; course?: string; enroll
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    globalFilterFn: (row, columnId, filterValue) => {
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const rowData = row.original;
       return (
-        row.original.name?.toLowerCase().includes(filterValue.toLowerCase()) ||
-        row.original.enrollNo?.toLowerCase().includes(filterValue.toLowerCase())
-      )
+        rowData.name.toLowerCase().includes(filterValue.toLowerCase()) ||
+        rowData.enrollNo.toLowerCase().includes(filterValue.toLowerCase())
+      );
     },
   })
 
   // filtering data manually before passing to rows
-  const filteredRows = tableData.filter((row) => {
-    const matchCourse = courseFilter === "all" || row.course === courseFilter
-    const matchStatus = statusFilter === "all" || row.status === statusFilter
-    const matchSearch =
-      globalFilter === "" ||
-      row.name?.toLowerCase().includes(globalFilter.toLowerCase()) ||
-      row.enrollNo?.toLowerCase().includes(globalFilter.toLowerCase())
-    return matchCourse && matchStatus && matchSearch
-  })
+  const filteredRows = React.useMemo(() => {
+    return tableData.filter((row) => {
+      const matchCourse = courseFilter === "all" || row.course === courseFilter
+      const matchStatus = statusFilter === "all" || row.status === statusFilter
+      const matchSearch =
+        globalFilter === "" ||
+        row.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+        row.enrollNo.toLowerCase().includes(globalFilter.toLowerCase())
+      return matchCourse && matchStatus && matchSearch
+    })
+  }, [tableData, courseFilter, statusFilter, globalFilter])
 
   // handle status change
-  const updateStatus = (rowIndex: number, status: "present" | "absent" | "leave") => {
-    const updated = [...tableData]
-    updated[rowIndex] = {
-      ...updated[rowIndex],
-      status: status,
-    }
-    setTableData(updated)
-    if (onStatusChange) onStatusChange(rowIndex, status)
-  }
+  const updateStatus = React.useCallback((rowIndex: number, status: TableData["status"]) => {
+    setTableData(prev => {
+      const updated = [...prev]
+      updated[rowIndex] = {
+        ...updated[rowIndex],
+        status,
+      }
+      return updated
+    })
+    if (onStatusChange) onStatusChange(rowIndex, status!)
+  }, [onStatusChange])
 
   // counts
-  const counts = {
+  const counts = React.useMemo(() => ({
     present: tableData.filter((row) => row.status === "present").length,
     absent: tableData.filter((row) => row.status === "absent").length,
     leave: tableData.filter((row) => row.status === "leave").length,
-  }
+  }), [tableData])
 
   return (
     <div className="space-y-4">
@@ -258,10 +271,23 @@ export function DataTable<TData extends { name?: string; course?: string; enroll
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id} className="p-2 border-b cursor-pointer">
+                <th 
+                  key={header.id} 
+                  className="p-2 border-b cursor-pointer"
+                  onClick={header.column.getToggleSortingHandler()}
+                >
                   {header.isPlaceholder
                     ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                    : (
+                      <div className="flex items-center gap-2">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getIsSorted() && (
+                          <span>
+                            {header.column.getIsSorted() === "asc" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </div>
+                    )}
                 </th>
               ))}
               <th className="p-2 border-b">Actions</th>
@@ -273,36 +299,47 @@ export function DataTable<TData extends { name?: string; course?: string; enroll
             const status = row.status
             const rowColor =
               status === "present"
-                ? "bg-blue-100"
+                ? "bg-blue-50"
                 : status === "absent"
-                ? "bg-red-100"
-                : "bg-yellow-100"
+                ? "bg-red-50"
+                : status === "leave"
+                ? "bg-yellow-50"
+                : "bg-white"
 
             return (
-              <tr key={row.id} className={`${rowColor}`}>
-                {table.getHeaderGroups()[0].headers.map((header) => {
-                  const accessor = header.column.columnDef.accessorKey as keyof typeof row
-                  return (
-                    <td key={header.id} className="p-2 border-b text-center">
-                      {row[accessor] as string}
-                    </td>
-                  )
-                })}
+              <tr key={row.id} className={`${rowColor} hover:bg-gray-50`}>
+                {Object.keys(row).filter(key => key !== 'id' && key !== 'status').map((key) => (
+                  <td key={key} className="p-2 border-b text-center">
+                    {String(row[key as keyof typeof row])}
+                  </td>
+                ))}
                 <td className="p-2 border-b text-center space-x-2">
                   <button
-                    className="px-2 py-1 bg-blue-500 text-white rounded"
+                    className={`px-2 py-1 rounded ${
+                      status === 'present' 
+                        ? 'bg-blue-600' 
+                        : 'bg-blue-500'
+                    } text-white hover:bg-blue-600 transition-colors`}
                     onClick={() => updateStatus(i, "present")}
                   >
                     Present
                   </button>
                   <button
-                    className="px-2 py-1 bg-red-500 text-white rounded"
+                    className={`px-2 py-1 rounded ${
+                      status === 'absent' 
+                        ? 'bg-red-600' 
+                        : 'bg-red-500'
+                    } text-white hover:bg-red-600 transition-colors`}
                     onClick={() => updateStatus(i, "absent")}
                   >
                     Absent
                   </button>
                   <button
-                    className="px-2 py-1 bg-yellow-500 text-white rounded"
+                    className={`px-2 py-1 rounded ${
+                      status === 'leave' 
+                        ? 'bg-yellow-600' 
+                        : 'bg-yellow-500'
+                    } text-white hover:bg-yellow-600 transition-colors`}
                     onClick={() => updateStatus(i, "leave")}
                   >
                     Leave
@@ -316,9 +353,9 @@ export function DataTable<TData extends { name?: string; course?: string; enroll
 
       {/* Counts */}
       <div className="flex gap-4 font-medium">
-        <span className="text-blue-100">Present: {counts.present}</span>
-        <span className="text-red-100">Absent: {counts.absent}</span>
-        <span className="text-yellow-100">Leave: {counts.leave}</span>
+        <span className="text-blue-600">Present: {counts.present}</span>
+        <span className="text-red-600">Absent: {counts.absent}</span>
+        <span className="text-yellow-600">Leave: {counts.leave}</span>
       </div>
     </div>
   )

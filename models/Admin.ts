@@ -1,42 +1,39 @@
-import { Schema, model, models, Document } from "mongoose";
+// models/Admin.ts
+import { Schema, model, models, Document, Types } from "mongoose";
 
-// Define the interface for the Admin document
-interface IAdmin extends Document {
+export interface IAdmin {
   enroll_number: string;
   name: string;
-  created_at: Date;
-  updated_at: Date;
 }
 
-const AdminSchema = new Schema<IAdmin>(
+export interface IAdminDocument extends IAdmin, Document {
+  _id: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const AdminSchema = new Schema<IAdminDocument>(
   {
     enroll_number: {
       type: String,
       required: [true, "Enrollment number is required"],
       unique: true,
+      trim: true,
     },
     name: {
       type: String,
       required: [true, "Name is required"],
+      trim: true,
     },
   },
   {
     timestamps: true,
     collection: "Admin",
-    toJSON: {
-      virtuals: true,
-      transform: function (_, ret: Record<string, unknown>) {
-        const id = ret._id;
-        if (id && typeof id === 'string') {
-          ret.id = id;
-          delete ret._id;
-        }
-        return ret;
-      },
-    },
   }
 );
 
-const Admin = models.Admin || model<IAdmin>("Admin", AdminSchema);
+AdminSchema.index({ enroll_number: 1 }, { unique: true });
+
+const Admin = models.Admin || model<IAdminDocument>("Admin", AdminSchema);
 
 export default Admin;

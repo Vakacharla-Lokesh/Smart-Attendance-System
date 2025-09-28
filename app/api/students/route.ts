@@ -1,22 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Student from "@/models/Student";
-import { authenticateUser, AuthRequest } from "@/lib/auth";
-import { handleError } from "@/lib/utils";
+import { formatStudentResponse, validateRequiredFields } from "@/lib/db-utils";
+
+// Interface for request with potential user info
+interface AuthRequest extends NextRequest {
+  user?: {
+    id: string;
+    email_id: string;
+    enroll_no: string;
+  };
+}
+
+// Simple error handler
+function handleError(error: unknown) {
+  console.error("API Error:", error);
+  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+}
 
 // GET all students
-export async function GET(request: AuthRequest) {
+export async function GET(_request: AuthRequest) {
   try {
-    // Check authentication
-    const authError = await authenticateUser(request);
-    if (authError) return authError;
-
     await connectDB();
-    const students = await Student.find({})
-      .select("enroll_number name card_number")
-      .lean();
 
-    return NextResponse.json(students);
+    const students = await Student.find({})
+      .select("enroll_number name card_number createdAt updatedAt")
+      .lean()
+      .exec();
+
+    // Transform the data using our utility function
+    const formattedStudents = students.map((student) =>
+      formatStudentResponse(student)
+    );
+
+    return NextResponse.json(formattedStudents);
   } catch (error) {
     return handleError(error);
   }
@@ -25,40 +42,77 @@ export async function GET(request: AuthRequest) {
 // POST new student
 export async function POST(request: AuthRequest) {
   try {
-    // Check authentication
-    const authError = await authenticateUser(request);
-    if (authError) return authError;
+    const body = await request.json();
+    const { enroll_number, name, card_number } = body;
 
-    const { enroll_number, name, card_number } = await request.json();
+    // Validate required fields
+    const validation = validateRequiredFields(body, ["enroll_number", "name"]);
+    if (validation) {
+      return NextResponse.json({ error: validation }, { status: 400 });
+    }
 
-    if (!enroll_number || !name) {
+    // Type validation
+    if (typeof enroll_number !== "string" || typeof name !== "string") {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Invalid field types" },
         { status: 400 }
       );
     }
 
     await connectDB();
 
-    const existingStudent = await Student.findOne({ enroll_number }).lean();
+    // Check if student already exists
+    const existingStudent = await Student.findOne({
+      enroll_number: enroll_number.trim(),
+    })
+      .lean()
+      .exec();
+
     if (existingStudent) {
       return NextResponse.json(
-        { error: "Student already exists" },
+        { error: "Student with this enrollment number already exists" },
         { status: 409 }
       );
     }
 
+    // Create new student
     const student = await Student.create({
-      enroll_number,
-      name,
-      card_number: card_number || "",
+      enroll_number: enroll_number.trim(),
+      name: name.trim(),
+      card_number: card_number ? card_number.trim() : "",
     });
 
     return NextResponse.json({
       message: "Student created successfully",
-      student: student.toJSON()
+      student: formatStudentResponse(student),
     });
   } catch (error) {
+    // Handle mongoose validation errors
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      error.name === "ValidationError"
+    ) {
+      return NextResponse.json(
+        { error: "Validation error: Please check your input data" },
+        { status: 400 }
+      );
+    }
+
+    // Handle duplicate key errors
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      return NextResponse.json(
+        { error: "Student with this enrollment number already exists" },
+        { status: 409 }
+      );
+    }
+
     return handleError(error);
   }
 }

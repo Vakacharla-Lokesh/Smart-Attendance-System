@@ -1,46 +1,47 @@
-import { Schema, model, models, Document } from "mongoose";
+// models/Student.ts
+import { Schema, model, models, Document, Types } from "mongoose";
 
-// Define the interface for the Student document
-interface IStudent extends Document {
+export interface IStudent {
   enroll_number: string;
   name: string;
   card_number: string;
-  created_at: Date;
-  updated_at: Date;
 }
 
-const StudentSchema = new Schema<IStudent>(
+export interface IStudentDocument extends IStudent, Document {
+  _id: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const StudentSchema = new Schema<IStudentDocument>(
   {
     enroll_number: {
       type: String,
       required: [true, "Enrollment number is required"],
       unique: true,
+      trim: true,
     },
     name: {
       type: String,
       required: [true, "Name is required"],
+      trim: true,
     },
     card_number: {
       type: String,
-      required: [true, "Card number is required"],
-      unique: true,
+      required: false,
+      default: "",
+      trim: true,
     },
   },
   {
     timestamps: true,
     collection: "Student",
-    toJSON: {
-      virtuals: true,
-      transform: function (_, ret) {
-        delete ret._id;
-        // delete ret?.__v;
-        return ret;
-      },
-    },
   }
 );
 
-// Prevent model recompilation error in development
-const Student = models.Student || model<IStudent>("Student", StudentSchema);
+StudentSchema.index({ enroll_number: 1 }, { unique: true });
+
+const Student =
+  models.Student || model<IStudentDocument>("Student", StudentSchema);
 
 export default Student;

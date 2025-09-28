@@ -1,14 +1,19 @@
-import { Schema, model, models, Document } from "mongoose";
+// models/UserData.ts
+import { Schema, model, models, Document, Types } from "mongoose";
 
-interface IUser extends Document {
+export interface IUser {
   email_id: string;
   password: string;
   enroll_no: string;
-  created_at: Date;
-  updated_at: Date;
 }
 
-const UserSchema = new Schema<IUser>(
+export interface IUserDocument extends IUser, Document {
+  _id: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const UserSchema = new Schema<IUserDocument>(
   {
     email_id: {
       type: String,
@@ -32,24 +37,13 @@ const UserSchema = new Schema<IUser>(
   {
     timestamps: true,
     collection: "UserData",
-    toJSON: {
-      virtuals: true,
-      transform: function (_, ret: Record<string, unknown>) {
-        const id = ret._id;
-        if (id && typeof id === "string") {
-          ret.id = id;
-          delete ret._id;
-        }
-        delete ret.password;
-        return ret;
-      },
-    },
   }
 );
 
 UserSchema.index({ email_id: 1 }, { unique: true });
 UserSchema.index({ enroll_no: 1 }, { unique: true });
 
-const UserData = models.UserData || model<IUser>("UserData", UserSchema);
+const UserData =
+  models.UserData || model<IUserDocument>("UserData", UserSchema);
 
 export default UserData;

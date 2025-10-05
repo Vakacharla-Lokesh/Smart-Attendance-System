@@ -148,7 +148,7 @@ interface TableData {
   name: string;
   course: string;
   enrollNo: string;
-  status?: "present" | "absent" | "leave";
+  status?: "present" | "absent" | "leave" | "inactive";
 }
 
 export function DataTable<TData extends TableData, TValue>({
@@ -306,8 +306,10 @@ export function DataTable<TData extends TableData, TValue>({
                 ? "bg-yellow-50"
                 : "bg-white"
 
+            const inactiveClass = status === "inactive" ? "opacity-50 text-gray-400" : "";
+
             return (
-              <tr key={row.id} className={`${rowColor} hover:bg-gray-50`}>
+              <tr key={row.id} className={`${rowColor} hover:bg-gray-50 ${inactiveClass}`}>
                 {Object.keys(row).filter(key => key !== 'id' && key !== 'status').map((key) => (
                   <td key={key} className="p-2 border-b text-center">
                     {String(row[key as keyof typeof row])}
@@ -321,6 +323,7 @@ export function DataTable<TData extends TableData, TValue>({
                         : 'bg-blue-500'
                     } text-white hover:bg-blue-600 transition-colors`}
                     onClick={() => updateStatus(i, "present")}
+                    disabled={status === 'inactive'}
                   >
                     Present
                   </button>
@@ -331,6 +334,7 @@ export function DataTable<TData extends TableData, TValue>({
                         : 'bg-red-500'
                     } text-white hover:bg-red-600 transition-colors`}
                     onClick={() => updateStatus(i, "absent")}
+                    disabled={status === 'inactive'}
                   >
                     Absent
                   </button>
@@ -341,6 +345,7 @@ export function DataTable<TData extends TableData, TValue>({
                         : 'bg-yellow-500'
                     } text-white hover:bg-yellow-600 transition-colors`}
                     onClick={() => updateStatus(i, "leave")}
+                    disabled={status === 'inactive'}
                   >
                     Leave
                   </button>

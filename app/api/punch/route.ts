@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const dateParam = url.searchParams.get("date");
 
-    let filter: any = {};
+    const filter: any = {};
     if (dateParam) {
       const d = new Date(dateParam);
       const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));

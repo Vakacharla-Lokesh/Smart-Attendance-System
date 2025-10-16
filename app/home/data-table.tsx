@@ -140,7 +140,6 @@ import {
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  onStatusChange?: (rowIndex: number, status: string) => void
 }
 
 interface TableData {
@@ -154,9 +153,13 @@ interface TableData {
 export function DataTable<TData extends TableData, TValue>({
   columns,
   data,
-  onStatusChange,
 }: DataTableProps<TData, TValue>) {
   const [tableData, setTableData] = React.useState<TData[]>(data)
+
+  // Keep internal table state in sync when parent `data` prop changes
+  React.useEffect(() => {
+    setTableData(data)
+  }, [data])
 
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [courseFilter, setCourseFilter] = React.useState("all")
@@ -183,31 +186,11 @@ export function DataTable<TData extends TableData, TValue>({
     },
   })
 
-  // filtering data manually before passing to rows
-  const filteredRows = React.useMemo(() => {
-    return tableData.filter((row) => {
-      const matchCourse = courseFilter === "all" || row.course === courseFilter
-      const matchStatus = statusFilter === "all" || row.status === statusFilter
-      const matchSearch =
-        globalFilter === "" ||
-        row.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-        row.enrollNo.toLowerCase().includes(globalFilter.toLowerCase())
-      return matchCourse && matchStatus && matchSearch
-    })
-  }, [tableData, courseFilter, statusFilter, globalFilter])
+  // Note: rely on the TanStack table instance to provide rows so
+  // header and body stay aligned. Use table state (globalFilter, sorting)
+  // to let the table apply filtering/sorting via the provided plugins.
 
-  // handle status change
-  const updateStatus = React.useCallback((rowIndex: number, status: TableData["status"]) => {
-    setTableData(prev => {
-      const updated = [...prev]
-      updated[rowIndex] = {
-        ...updated[rowIndex],
-        status,
-      }
-      return updated
-    })
-    if (onStatusChange) onStatusChange(rowIndex, status!)
-  }, [onStatusChange])
+  // status updates are handled by the parent via `onStatusChange` passed in columns
 
   // counts
   const counts = React.useMemo(() => ({
@@ -266,37 +249,32 @@ export function DataTable<TData extends TableData, TValue>({
       </div>
 
       {/* Table */}
-      <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
+      <table className="min-w-full table-fixed border border-gray-300 rounded-lg overflow-hidden">
         <thead className="bg-gray-100">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th 
-                  key={header.id} 
-                  className="p-2 border-b cursor-pointer"
+                <th
+                  key={header.id}
+                  className="p-2 border-b text-left cursor-pointer"
                   onClick={header.column.getToggleSortingHandler()}
                 >
-                  {header.isPlaceholder
-                    ? null
-                    : (
-                      <div className="flex items-center gap-2">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() && (
-                          <span>
-                            {header.column.getIsSorted() === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                  {header.isPlaceholder ? null : (
+                    <div className="flex items-center gap-2">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getIsSorted() && (
+                        <span>{header.column.getIsSorted() === "asc" ? "↑" : "↓"}</span>
+                      )}
+                    </div>
+                  )}
                 </th>
               ))}
-              <th className="p-2 border-b">Actions</th>
             </tr>
           ))}
         </thead>
         <tbody>
-          {filteredRows.map((row, i) => {
-            const status = row.status
+          {table.getRowModel().rows.map((row) => {
+            const status = (row.original as any).status
             const rowColor =
               status === "present"
                 ? "bg-blue-50"
@@ -306,50 +284,15 @@ export function DataTable<TData extends TableData, TValue>({
                 ? "bg-yellow-50"
                 : "bg-white"
 
-            const inactiveClass = status === "inactive" ? "opacity-50 text-gray-400" : "";
+            const inactiveClass = status === "inactive" ? "opacity-50 text-gray-400" : ""
 
             return (
               <tr key={row.id} className={`${rowColor} hover:bg-gray-50 ${inactiveClass}`}>
-                {Object.keys(row).filter(key => key !== 'id' && key !== 'status').map((key) => (
-                  <td key={key} className="p-2 border-b text-center">
-                    {String(row[key as keyof typeof row])}
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="p-2 border-b text-left">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
-                <td className="p-2 border-b text-center space-x-2">
-                  <button
-                    className={`px-2 py-1 rounded ${
-                      status === 'present' 
-                        ? 'bg-blue-600' 
-                        : 'bg-blue-500'
-                    } text-white hover:bg-blue-600 transition-colors`}
-                    onClick={() => updateStatus(i, "present")}
-                    disabled={status === 'inactive'}
-                  >
-                    Present
-                  </button>
-                  <button
-                    className={`px-2 py-1 rounded ${
-                      status === 'absent' 
-                        ? 'bg-red-600' 
-                        : 'bg-red-500'
-                    } text-white hover:bg-red-600 transition-colors`}
-                    onClick={() => updateStatus(i, "absent")}
-                    disabled={status === 'inactive'}
-                  >
-                    Absent
-                  </button>
-                  <button
-                    className={`px-2 py-1 rounded ${
-                      status === 'leave' 
-                        ? 'bg-yellow-600' 
-                        : 'bg-yellow-500'
-                    } text-white hover:bg-yellow-600 transition-colors`}
-                    onClick={() => updateStatus(i, "leave")}
-                    disabled={status === 'inactive'}
-                  >
-                    Leave
-                  </button>
-                </td>
               </tr>
             )
           })}

@@ -36,9 +36,25 @@ export default function Page() {
         name: s.name,
         course: s.course || "-",
         enrollNo: s.enroll_number || s.enrollNo || "",
-        // Do not auto-mark present. Only mark as "inactive" when student has NO punch record.
-        status: presentEnrolls.has(s.enroll_number) ? undefined : "inactive",
+        // status: if student has a punch today mark as present, otherwise mark inactive
+        status: presentEnrolls.has(s.enroll_number) ? "present" : "inactive",
       }));
+
+      // Add any punch-only enrollments (punches with no matching student) so they show up in the table
+      const existingEnrolls = new Set(rows.map((r) => r.enrollNo));
+      for (const p of punches) {
+        const enr = p.enroll_number;
+        if (enr && !existingEnrolls.has(enr)) {
+          rows.push({
+            id: enr,
+            name: enr, // unknown student name; show enrollment as name
+            course: "-",
+            enrollNo: enr,
+            status: "present",
+          });
+          existingEnrolls.add(enr);
+        }
+      }
 
       setData(rows);
       setLoading(false);

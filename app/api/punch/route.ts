@@ -11,8 +11,14 @@ export async function POST(request: NextRequest) {
     const { card_number, date, enroll_number: bodyEnroll } = body;
 
     // require either card_number or enroll_number
-    if ((!card_number || typeof card_number !== "string") && (!bodyEnroll || typeof bodyEnroll !== "string")) {
-      return NextResponse.json({ error: "card_number or enroll_number is required" }, { status: 400 });
+    if (
+      (!card_number || typeof card_number !== "string") &&
+      (!bodyEnroll || typeof bodyEnroll !== "string")
+    ) {
+      return NextResponse.json(
+        { error: "card_number or enroll_number is required" },
+        { status: 400 }
+      );
     }
 
     await connectDB();
@@ -22,10 +28,17 @@ export async function POST(request: NextRequest) {
     if (bodyEnroll && typeof bodyEnroll === "string" && bodyEnroll.trim()) {
       enroll_number = bodyEnroll.trim();
     } else if (card_number && typeof card_number === "string") {
-      const student = await Student.findOne({ card_number }).lean().exec();
+      const student = (await Student.findOne({ card_number })
+        .lean()
+        .exec()) as { enroll_number: string } | null;
+
       if (!student) {
-        return NextResponse.json({ error: "Student not found for provided card_number" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Student not found for provided card_number" },
+          { status: 404 }
+        );
       }
+
       enroll_number = student.enroll_number;
     }
 
@@ -36,7 +49,9 @@ export async function POST(request: NextRequest) {
       recordDate = new Date(Date.UTC(year, month - 1, day));
     } else {
       const now = new Date();
-      recordDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      recordDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
     }
 
     const newRecord = await PunchRecord.create({
@@ -45,10 +60,16 @@ export async function POST(request: NextRequest) {
       date: recordDate,
     });
 
-    return NextResponse.json({ message: "Punch recorded", record: newRecord.toJSON() });
+    return NextResponse.json({
+      message: "Punch recorded",
+      record: newRecord.toJSON(),
+    });
   } catch (error) {
     console.error("Punch POST error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -83,6 +104,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(out);
   } catch (error) {
     console.error("Punch GET error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

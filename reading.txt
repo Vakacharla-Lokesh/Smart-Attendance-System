@@ -1,0 +1,185 @@
+#include <SPI.h>
+#include <MFRC522.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+// Pin Definitions
+#define SS_PIN   D4  // SDA
+#define RST_PIN  D3  // Reset
+#define BUZZER   D8  
+
+// RFID and LCD Setup
+MFRC522 mfrc522(SS_PIN, RST_PIN);
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // LCD Address
+
+// WiFi Credentials
+const char* ssid = "xxx";
+const char* password = "xxx";
+
+// Google Sheets Script URL
+const String sheet_url = "https://script.google.com/macros/s/AKfycbyc9v5_QmPL4M-42IrKX0LXiliJFhHtI1o14VaoQcCjneeEqdXvr0bLkj3tLDijM4Iqzw/exec";
+
+// NTP Client Setup (IST - Indian Standard Time UTC+5:30)
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800, 60000); // UTC+5:30 = 19800 seconds
+
+// Block Number for Data Storage
+const int blockNum = 4;
+MFRC522::MIFARE_Key key;
+MFRC522::StatusCode status;
+byte bufferLen = 18;
+byte readBlockData[18];
+
+//---------------------------------------------------------------------------------------------------
+void setup() {
+  Serial.begin(9600);
+  lcd.begin();
+  lcd.backlight();
+  pinMode(BUZZER, OUTPUT);
+  
+  // Initialize SPI & RFID
+  SPI.begin();
+  mfrc522.PCD_Init();
+
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  lcd.setCursor(0, 0);
+  lcd.print("Connecting WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    lcd.print(".");
+    delay(500);
+  }
+  Serial.println("\nWiFi Connected");
+  lcd.clear();
+  lcd.print("WiFi Connected!");
+  delay(1000);
+
+  // Start NTP Client
+  timeClient.begin();
+  timeClient.update();
+}
+
+//---------------------------------------------------------------------------------------------------
+void loop() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Scan Your Card");
+
+  // Check for new RFID card
+  if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) return;
+  
+  Serial.println("\nCard Detected!");
+  ReadDataFromBlock(blockNum, readBlockData);
+  
+  String card_name = String((char*)readBlockData);
+  card_name.trim();
+
+  Serial.print("Stored Name: ");
+  Serial.println(card_name);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Hey " + card_name + "!");
+  buzzSuccess();
+
+  // Get Current Date and Time
+  timeClient.update();
+  String currentDate = getFormattedDate();
+  String currentTime = getFormattedTime();
+  
+  // Send data to Google Sheets
+sendToGoogleSheets(card_name, currentDate, currentTime);
+
+  // Halt card
+  mfrc522.PICC_HaltA();
+}
+
+//---------------------------------------------------------------------------------------------------
+void ReadDataFromBlock(int blockNum, byte readBlockData[]) {
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
+  }
+  
+  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522.uid));
+  if (status != MFRC522::STATUS_OK) {
+    Serial.print("Authentication failed: ");
+    Serial.println(mfrc522.GetStatusCodeName(status));
+    return;
+  }
+
+  status = mfrc522.MIFARE_Read(blockNum, readBlockData, &bufferLen);
+  if (status != MFRC522::STATUS_OK) {
+    Serial.print("Read failed: ");
+    Serial.println(mfrc522.GetStatusCodeName(status));
+  } else {
+    Serial.println("Read successful!");
+  }
+}
+
+//---------------------------------------------------------------------------------------------------
+String getFormattedDate() {
+  int day = timeClient.getDay();  // 0 = Sunday, 6 = Saturday
+  int month = 3;  // Hardcoded (NTPClient does not provide month)
+  int year = 2025;  // Hardcoded year
+
+  String months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  return String(day) + "-" + months[month - 1] + "-" + String(year);
+}
+
+//---------------------------------------------------------------------------------------------------
+String getFormattedTime() {
+  return timeClient.getFormattedTime();
+}
+
+//---------------------------------------------------------------------------------------------------
+void sendToGoogleSheets(String name, String date, String time) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
+  client->setInsecure();  
+
+  HTTPClient https;
+
+  // Encode spaces in the name
+  name.replace(" ", "%20");
+  date.replace(" ", "%20");
+  time.replace(" ", "%20");
+
+  // Construct request URL
+  String request_url = sheet_url + "?name=" + name + "&date=" + date + "&time=" + time;
+  
+  Serial.print("Sending to Google Sheets: ");
+  Serial.println(request_url);
+
+  if (https.begin(*client, request_url)) {
+    int httpCode = https.GET();
+    if (httpCode > 0) {
+      Serial.printf("Google Sheets Response: %d\n", httpCode);
+      lcd.setCursor(0, 1);
+      lcd.print("Data Recorded!");
+    } else {
+      Serial.printf("Error: %s\n", https.errorToString(httpCode).c_str());
+    }
+    https.end();
+  } else {
+    Serial.println("Connection Failed!");
+  }
+}
+
+//---------------------------------------------------------------------------------------------------
+void buzzSuccess() {
+  digitalWrite(BUZZER, HIGH);
+  delay(200);
+  digitalWrite(BUZZER, LOW);
+  delay(200);
+  digitalWrite(BUZZER, HIGH);
+  delay(200);
+  digitalWrite(BUZZER, LOW);
+}

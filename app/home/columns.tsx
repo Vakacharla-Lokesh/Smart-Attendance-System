@@ -13,64 +13,81 @@ type AttendanceRecord = {
 export const columns: ColumnDef<AttendanceRecord, unknown>[] = [
   {
     accessorKey: "name",
-    header: "Name",
+    header: () => <span className="text-rose-400">Name</span>,
   },
   {
     accessorKey: "course",
-    header: "Course",
+    header: () => <span className="text-rose-400">Course</span>,
   },
   {
     accessorKey: "enrollNo",
-    header: "Enroll No",
+    header: () => <span className="text-rose-400">Enroll No</span>,
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: () => <span className="text-rose-400">Status</span>,
     cell: ({ row }) => {
       const status = row.original.status;
-      if (!status) return <span className="text-gray-600">-</span>;
-      const cls =
+      const color =
         status === "present"
-          ? "text-blue-600 font-medium"
+          ? "text-green-400"
           : status === "absent"
-          ? "text-red-600 font-medium"
-          : "text-yellow-600 font-medium";
-      return <span className={cls}>{status.toUpperCase()}</span>;
+          ? "text-red-400"
+          : status === "leave"
+          ? "text-yellow-400"
+          : "text-gray-500";
+      return (
+        <span className={`capitalize font-semibold ${color}`}>
+          {status || "-"}
+        </span>
+      );
     },
   },
 ];
 
-// Export a function that creates columns with the updateStatus callback
 export const createColumns = (
   updateStatus: (id: string, newStatus: AttendanceRecord["status"]) => void
 ): ColumnDef<AttendanceRecord, unknown>[] => [
   ...columns,
   {
     id: "actions",
-    header: "Actions",
+    header: () => <span className="text-rose-400">Actions</span>,
     cell: ({ row }) => {
       const id = row.original.id;
-      const inactive = row.original.status === 'inactive';
+      const inactive = row.original.status === "inactive";
+
       return (
         <div className="flex gap-2">
           <button
-            className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
             onClick={() => updateStatus(id, "present")}
             disabled={inactive}
+            className={`px-3 py-1 text-xs rounded-md font-semibold ${
+              inactive
+                ? "bg-gray-700 text-gray-400"
+                : "bg-green-600 hover:bg-green-700 text-white"
+            }`}
           >
             Present
           </button>
           <button
-            className="px-2 py-1 bg-red-500 text-white rounded text-xs"
             onClick={() => updateStatus(id, "absent")}
             disabled={inactive}
+            className={`px-3 py-1 text-xs rounded-md font-semibold ${
+              inactive
+                ? "bg-gray-700 text-gray-400"
+                : "bg-red-600 hover:bg-red-700 text-white"
+            }`}
           >
             Absent
           </button>
           <button
-            className="px-2 py-1 bg-yellow-500 text-white rounded text-xs"
             onClick={() => updateStatus(id, "leave")}
             disabled={inactive}
+            className={`px-3 py-1 text-xs rounded-md font-semibold ${
+              inactive
+                ? "bg-gray-700 text-gray-400"
+                : "bg-yellow-500 hover:bg-yellow-600 text-black"
+            }`}
           >
             Leave
           </button>

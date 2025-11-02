@@ -21,18 +21,15 @@ export default function Page() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      // fetch all students
       const studentsRes = await fetch("/api/students");
       const students = await studentsRes.json();
 
-      // fetch today's punch records
       const today = new Date();
       const dateStr = today.toISOString().split("T")[0];
       const punchesRes = await fetch(`/api/punch?date=${dateStr}`);
       const punches = await punchesRes.json();
 
       const presentEnrolls = new Set(punches.map((p: any) => p.enroll_number));
-
       const rows: AttendanceRecord[] = students.map((s: any) => ({
         id: s.id || s._id,
         name: s.name,
@@ -41,11 +38,11 @@ export default function Page() {
         status: presentEnrolls.has(s.enroll_number) ? "present" : "inactive",
       }));
 
-      // Add any punch-only enrollments
-      const existingEnrolls = new Set(rows.map((r) => r.enrollNo));
+      // Add punch-only enrollments (extra data)
+      const existing = new Set(rows.map((r) => r.enrollNo));
       for (const p of punches) {
         const enr = p.enroll_number;
-        if (enr && !existingEnrolls.has(enr)) {
+        if (enr && !existing.has(enr)) {
           rows.push({
             id: enr,
             name: enr,
@@ -53,7 +50,7 @@ export default function Page() {
             enrollNo: enr,
             status: "present",
           });
-          existingEnrolls.add(enr);
+          existing.add(enr);
         }
       }
 
@@ -76,7 +73,6 @@ export default function Page() {
   const handleSaveAttendance = async () => {
     setSaving(true);
     try {
-      // Get all students marked as present
       const presentStudents = data
         .filter((row) => row.status === "present")
         .map((row) => row.enrollNo);
@@ -87,29 +83,21 @@ export default function Page() {
         return;
       }
 
-      // Call the attendance API
       const response = await fetch("/api/attendance", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          enroll_numbers: presentStudents,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enroll_numbers: presentStudents }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        alert(
-          `Attendance saved successfully for ${presentStudents.length} students!`
-        );
-        console.log("Results:", result);
+        alert(`✅ Attendance saved for ${presentStudents.length} students!`);
       } else {
-        alert(`Error: ${result.error}`);
+        alert(`❌ Error: ${result.error}`);
       }
-    } catch (error) {
-      console.error("Error saving attendance:", error);
+    } catch (err) {
+      console.error("Error saving attendance:", err);
       alert("Failed to save attendance");
     } finally {
       setSaving(false);
@@ -117,24 +105,29 @@ export default function Page() {
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Attendance Management</h1>
+    <div className="min-h-screen bg-black text-white py-10 px-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <h1 className="text-3xl font-bold text-rose-400">
+          Attendance Management
+        </h1>
         <Button
           onClick={handleSaveAttendance}
           disabled={saving}
-          size="lg"
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded-lg font-semibold"
         >
           {saving ? "Saving..." : "Save Attendance"}
         </Button>
       </div>
 
-      <DataTable
-        columns={createColumns(updateStatus)}
-        data={data}
-      />
-      {loading && <div className="mt-4 text-sm text-gray-500">Loading...</div>}
+      {/* Data Table */}
+      <div className="rounded-xl overflow-hidden border border-gray-800 shadow-lg">
+        <DataTable columns={createColumns(updateStatus)} data={data} />
+      </div>
+
+      {loading && (
+        <div className="mt-4 text-sm text-gray-400">Loading...</div>
+      )}
     </div>
   );
 }

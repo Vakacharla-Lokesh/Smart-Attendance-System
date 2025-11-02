@@ -2,13 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Bell,
-  CalendarClock,
-  FileDown,
-  BookOpen,
-  GraduationCap,
-} from "lucide-react";
+import { Bell, CalendarClock, FileDown, BookOpen } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -40,7 +34,6 @@ export default function Page() {
     <div className="flex bg-gradient-to-b from-gray-900 to-black text-white min-h-screen overflow-y-auto">
       {/* ---------- LEFT MAIN SECTION ---------- */}
       <div className="flex-1 p-8 space-y-8">
-        
         {/* ---------- NAVBAR ---------- */}
         <div className="mb-4 flex items-center justify-between">
           <Link href="/home">
@@ -99,7 +92,10 @@ export default function Page() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Donut Chart */}
             <div className="flex justify-center items-center">
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer
+                width="100%"
+                height={200}
+              >
                 <PieChart>
                   <Pie
                     data={attendanceData}
@@ -111,7 +107,10 @@ export default function Page() {
                     dataKey="value"
                   >
                     {attendanceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                      />
                     ))}
                   </Pie>
                 </PieChart>
@@ -126,7 +125,8 @@ export default function Page() {
                     className="inline-block w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: item.color }}
                   ></span>
-                  {item.name}: <span className="font-semibold">{item.value}</span>
+                  {item.name}:{" "}
+                  <span className="font-semibold">{item.value}</span>
                 </p>
               ))}
               <p className="mt-3 text-purple-400 font-semibold">
@@ -169,12 +169,22 @@ export default function Page() {
             <h3 className="text-lg font-semibold mb-2">
               Weekly Attendance Trend
             </h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer
+              width="100%"
+              height={200}
+            >
               <BarChart data={weeklyData}>
-                <XAxis dataKey="day" stroke="#aaa" />
+                <XAxis
+                  dataKey="day"
+                  stroke="#aaa"
+                />
                 <YAxis stroke="#aaa" />
                 <Tooltip />
-                <Bar dataKey="attendance" fill="#9b5de5" radius={[8, 8, 0, 0]} />
+                <Bar
+                  dataKey="attendance"
+                  fill="#9b5de5"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -269,7 +279,7 @@ export default function Page() {
 }
 
 /* ---------- REUSABLE COMPONENT ---------- */
-function Notification({ title, desc }) {
+function Notification({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="bg-gray-800/50 hover:bg-gray-800/70 transition rounded-xl p-4 shadow-sm cursor-pointer">
       <h3 className="font-semibold text-purple-400">{title}</h3>

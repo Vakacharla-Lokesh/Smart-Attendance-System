@@ -5,12 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function page() {
   return (
     <>
-      <div className="p-2 rounded-4xl bg-gradient-to-b from-gray-50 to-gray-100">
+      <div className="p-2 rounded-4xl bg-gradient-to-b bg-black">
         <Link href={"/"}>
           <Button variant="default">Back</Button>
         </Link>
       </div>
-      <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-gray-50 to-gray-100 font-sans px-4 py-16">
+      <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b bg-black font-sans px-4 py-16">
         <Card className="w-full max-w-2xl shadow-md rounded-2xl">
           <CardContent className="p-8">
             <h2 className="text-3xl font-bold text-center mb-10">

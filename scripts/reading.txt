@@ -1,0 +1,261 @@
+#include <SPI.h>
+#include <MFRC522.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <ArduinoJson.h>  // Add this library!
+
+// Pin Definitions
+#define SS_PIN   D4  // SDA
+#define RST_PIN  D3  // Reset
+#define BUZZER   D8  
+
+// RFID and LCD Setup
+MFRC522 mfrc522(SS_PIN, RST_PIN);
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // LCD Address
+
+// WiFi Credentials
+const char* ssid = "xxx";
+const char* password = "xxx";
+
+// API Endpoint
+const String api_url = "https://smart-attendance-system-seven.vercel.app/api/punch";
+
+// NTP Client Setup (IST - Indian Standard Time UTC+5:30)
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800, 60000); // UTC+5:30 = 19800 seconds
+
+// Block Number for Data Storage
+const int blockNum = 4;
+MFRC522::MIFARE_Key key;
+MFRC522::StatusCode status;
+byte bufferLen = 18;
+byte readBlockData[18];
+
+//---------------------------------------------------------------------------------------------------
+void setup() {
+  Serial.begin(9600);
+  lcd.begin();
+  lcd.backlight();
+  pinMode(BUZZER, OUTPUT);
+  
+  // Initialize SPI & RFID
+  SPI.begin();
+  mfrc522.PCD_Init();
+
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  lcd.setCursor(0, 0);
+  lcd.print("Connecting WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    lcd.print(".");
+    delay(500);
+  }
+  Serial.println("\nWiFi Connected");
+  lcd.clear();
+  lcd.print("WiFi Connected!");
+  delay(1000);
+
+  // Start NTP Client
+  timeClient.begin();
+  timeClient.update();
+}
+
+//---------------------------------------------------------------------------------------------------
+void loop() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Scan Your Card");
+
+  // Check for new RFID card
+  if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) return;
+  
+  Serial.println("\nCard Detected!");
+  ReadDataFromBlock(blockNum, readBlockData);
+  
+  String card_name = String((char*)readBlockData);
+  card_name.trim();
+
+  Serial.print("Stored Name: ");
+  Serial.println(card_name);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Hey " + card_name + "!");
+  buzzSuccess();
+
+  // Get Current Date
+  timeClient.update();
+  String currentDate = getFormattedDateForAPI();
+  
+  // Send data to API (using card_name as card_number)
+  sendToAPI(card_name, currentDate);
+
+  // Halt card
+  mfrc522.PICC_HaltA();
+  
+  delay(2000); // Prevent multiple scans
+}
+
+//---------------------------------------------------------------------------------------------------
+void ReadDataFromBlock(int blockNum, byte readBlockData[]) {
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
+  }
+  
+  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockNum, &key, &(mfrc522.uid));
+  if (status != MFRC522::STATUS_OK) {
+    Serial.print("Authentication failed: ");
+    Serial.println(mfrc522.GetStatusCodeName(status));
+    return;
+  }
+
+  status = mfrc522.MIFARE_Read(blockNum, readBlockData, &bufferLen);
+  if (status != MFRC522::STATUS_OK) {
+    Serial.print("Read failed: ");
+    Serial.println(mfrc522.GetStatusCodeName(status));
+  } else {
+    Serial.println("Read successful!");
+  }
+}
+
+//---------------------------------------------------------------------------------------------------
+// Format date as YYYY-MM-DD for API
+String getFormattedDateForAPI() {
+  timeClient.update();
+  unsigned long epochTime = timeClient.getEpochTime();
+  
+  // Calculate date from epoch time
+  int currentYear = 1970;
+  int daysRemaining = epochTime / 86400;
+  
+  while (true) {
+    int daysInYear = (currentYear % 4 == 0 && (currentYear % 100 != 0 || currentYear % 400 == 0)) ? 366 : 365;
+    if (daysRemaining >= daysInYear) {
+      daysRemaining -= daysInYear;
+      currentYear++;
+    } else {
+      break;
+    }
+  }
+  
+  int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  if (currentYear % 4 == 0 && (currentYear % 100 != 0 || currentYear % 400 == 0)) {
+    daysInMonth[1] = 29;
+  }
+  
+  int currentMonth = 0;
+  while (daysRemaining >= daysInMonth[currentMonth]) {
+    daysRemaining -= daysInMonth[currentMonth];
+    currentMonth++;
+  }
+  currentMonth++; // Month is 1-based
+  
+  int currentDay = daysRemaining + 1;
+  
+  // Format as YYYY-MM-DD
+  String year = String(currentYear);
+  String month = currentMonth < 10 ? "0" + String(currentMonth) : String(currentMonth);
+  String day = currentDay < 10 ? "0" + String(currentDay) : String(currentDay);
+  
+  return year + "-" + month + "-" + day;
+}
+
+//---------------------------------------------------------------------------------------------------
+String getFormattedTime() {
+  return timeClient.getFormattedTime();
+}
+
+//---------------------------------------------------------------------------------------------------
+void sendToAPI(String cardNumber, String date) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected!");
+    lcd.setCursor(0, 1);
+    lcd.print("WiFi Error!");
+    return;
+  }
+  
+  std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
+  client->setInsecure();  // Skip SSL verification
+
+  HTTPClient https;
+
+  Serial.print("Connecting to API: ");
+  Serial.println(api_url);
+
+  if (https.begin(*client, api_url)) {
+    // Set headers
+    https.addHeader("Content-Type", "application/json");
+    
+    // Create JSON payload
+    StaticJsonDocument<200> doc;
+    doc["card_number"] = cardNumber;
+    doc["date"] = date;
+    
+    String jsonPayload;
+    serializeJson(doc, jsonPayload);
+    
+    Serial.print("Sending payload: ");
+    Serial.println(jsonPayload);
+    
+    // Send POST request
+    int httpCode = https.POST(jsonPayload);
+    
+    if (httpCode > 0) {
+      Serial.printf("API Response Code: %d\n", httpCode);
+      String response = https.getString();
+      Serial.print("Response: ");
+      Serial.println(response);
+      
+      lcd.setCursor(0, 1);
+      if (httpCode == 200) {
+        lcd.print("Punch Recorded!");
+        buzzSuccess();
+      } else if (httpCode == 404) {
+        lcd.print("Student Not Found");
+        buzzError();
+      } else {
+        lcd.print("Error!");
+        buzzError();
+      }
+    } else {
+      Serial.printf("Error: %s\n", https.errorToString(httpCode).c_str());
+      lcd.setCursor(0, 1);
+      lcd.print("Connection Fail!");
+      buzzError();
+    }
+    
+    https.end();
+  } else {
+    Serial.println("Connection Failed!");
+    lcd.setCursor(0, 1);
+    lcd.print("API Error!");
+    buzzError();
+  }
+  
+  delay(2000); // Show message for 2 seconds
+}
+
+//---------------------------------------------------------------------------------------------------
+void buzzSuccess() {
+  digitalWrite(BUZZER, HIGH);
+  delay(200);
+  digitalWrite(BUZZER, LOW);
+  delay(200);
+  digitalWrite(BUZZER, HIGH);
+  delay(200);
+  digitalWrite(BUZZER, LOW);
+}
+
+//---------------------------------------------------------------------------------------------------
+void buzzError() {
+  digitalWrite(BUZZER, HIGH);
+  delay(500);
+  digitalWrite(BUZZER, LOW);
+}

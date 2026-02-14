@@ -1,163 +1,128 @@
-// app/api/punch/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import PunchRecord from "@/models/PunchRecord";
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import Punch from "@/models/Punch";
 import Student from "@/models/Student";
-import Room from "@/models/Room";
-import { addPunchToQueue } from "@/lib/redis";
 
-// POST: Create a punch record and queue it for verification
-// Body: { card_number: string, scanner_id: string, date?: string (YYYY-MM-DD) }
-export async function POST(request: NextRequest) {
+export async function GET(request) {
   try {
-    const body = await request.json();
-    const { card_number, scanner_id, date } = body;
+    await dbConnect();
 
-    console.log("Received punch request:", body);
+    const { searchParams } = new URL(request.url);
+    const studentId = searchParams.get("student_id");
+    const scannerId = searchParams.get("scanner_id");
+    const startDate = searchParams.get("start_date");
+    const endDate = searchParams.get("end_date");
+    const limit = parseInt(searchParams.get("limit")) || 50;
 
-    // Validate required fields
-    if (!card_number || typeof card_number !== "string") {
-      return NextResponse.json(
-        { error: "card_number is required" },
-        { status: 400 },
-      );
+    let query = {};
+
+    if (studentId) query.student_id = studentId;
+    if (scannerId) query.scanner_id = scannerId;
+
+    if (startDate || endDate) {
+      query.punch_time = {};
+      if (startDate) query.punch_time.$gte = new Date(startDate);
+      if (endDate) query.punch_time.$lte = new Date(endDate);
     }
 
-    if (!scanner_id || typeof scanner_id !== "string") {
-      return NextResponse.json(
-        { error: "scanner_id is required" },
-        { status: 400 },
-      );
-    }
+    const punches = await Punch.find(query)
+      .populate("student_id", "enroll_number name course year section")
+      .sort({ punch_time: -1 })
+      .limit(limit)
+      .lean();
 
-    await connectDB();
-
-    // Find room by scanner_id
-    const room = await Room.findOne({ scanner_id: scanner_id.trim() })
-      .lean()
-      .exec();
-
-    if (!room) {
-      return NextResponse.json(
-        { error: "Invalid scanner_id - room not found" },
-        { status: 404 },
-      );
-    }
-
-    // Find student by card_number
-    const student = await Student.findOne({
-      card_number: card_number.trim(),
-    })
-      .lean()
-      .exec();
-
-    if (!student) {
-      return NextResponse.json(
-        { error: "Student not found with this card_number" },
-        { status: 404 },
-      );
-    }
-
-    // Determine the date
-    let punchDate: Date;
-    if (date) {
-      const [year, month, day] = date.split("-").map(Number);
-      punchDate = new Date(Date.UTC(year, month - 1, day));
-    } else {
-      const now = new Date();
-      punchDate = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-      );
-    }
-
-    // Create punch record in database
-    const punchRecord = await PunchRecord.create({
-      enroll_number: student.enroll_number,
-      card_number: card_number.trim(),
-      room_id: (room as any)._id.toString(),
-      scanner_id: scanner_id.trim(),
-      date: punchDate,
+    return NextResponse.json({
+      success: true,
+      data: punches,
+      count: punches.length,
     });
-
-    console.log(
-      `Punch record created: ${student.enroll_number} in room ${(room as any).room_number}`,
-    );
-
-    // Add to Redis queue for student to claim on login
-    const queueEntry = {
-      enroll_number: student.enroll_number,
-      card_number: card_number.trim(),
-      room_id: (room as any)._id.toString(),
-      scanner_id: scanner_id.trim(),
-      timestamp: Date.now(),
-    };
-
-    await addPunchToQueue(queueEntry);
-
-    console.log(
-      `Punch queued for ${student.enroll_number}: ${(room as any).room_number}`,
-    );
-
+  } catch (error) {
+    console.error("Error fetching punches:", error);
     return NextResponse.json(
       {
-        message: "Punch recorded and queued for verification",
-        punch_id: punchRecord._id,
-        student: {
-          enroll_number: student.enroll_number,
-          name: student.name,
-        },
-        room: {
-          room_id: (room as any)._id,
-          room_number: (room as any).room_number,
-          building: (room as any).building,
-        },
-        status: "queued",
+        success: false,
+        error: "Failed to fetch punches",
+        message: error.message,
       },
-      { status: 201 },
-    );
-  } catch (error) {
-    console.error("Punch POST error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
       { status: 500 },
     );
   }
 }
 
-// GET: Check punch status (for debugging/admin)
-// Query: ?enroll_number=xxx
-export async function GET(request: NextRequest) {
+export async function POST(request) {
   try {
-    const url = new URL(request.url);
-    const enrollNumber = url.searchParams.get("enroll_number");
+    await dbConnect();
 
-    if (!enrollNumber) {
+    const body = await request.json();
+
+    // Validate required fields
+    const requiredFields = ["student_id", "scanner_id", "punch_type"];
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Missing required field: ${field}`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Verify student exists
+    const student = await Student.findById(body.student_id);
+    if (!student) {
       return NextResponse.json(
-        { error: "enroll_number query parameter is required" },
-        { status: 400 },
+        {
+          success: false,
+          error: "Student not found",
+        },
+        { status: 404 },
       );
     }
 
-    await connectDB();
+    // Check if student is active
+    if (!student.is_active) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Student account is inactive",
+        },
+        { status: 403 },
+      );
+    }
 
-    // Get recent punch records
-    const records = await PunchRecord.find({
-      enroll_number: enrollNumber,
-    })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean()
-      .exec();
-
-    return NextResponse.json({
-      enroll_number: enrollNumber,
-      recent_punches: records,
-      count: records.length,
+    // Create punch record
+    const punch = await Punch.create({
+      student_id: body.student_id,
+      scanner_id: body.scanner_id,
+      punch_type: body.punch_type,
+      punch_time: body.punch_time || new Date(),
+      location: body.location || "",
+      verified: body.verified !== undefined ? body.verified : true,
     });
-  } catch (error) {
-    console.error("Punch GET error:", error);
+
+    // Populate student details
+    await punch.populate(
+      "student_id",
+      "enroll_number name course year section",
+    );
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        success: true,
+        data: punch,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Error creating punch:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to create punch",
+        message: error.message,
+      },
       { status: 500 },
     );
   }

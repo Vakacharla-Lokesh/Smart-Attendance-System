@@ -1,189 +1,134 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
+import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
-import UserData from "@/models/UserData";
-import { formatStudentResponse, validateRequiredFields } from "@/lib/db-utils";
+import Punch from "@/models/Punch";
 
-// GET student by enrollment number
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Await params since they're now a Promise in newer Next.js versions
-    const { id } = await context.params;
+    await dbConnect();
 
-    if (!id || typeof id !== "string") {
+    const { id } = params;
+
+    const student = await Student.findById(id).lean();
+
+    if (!student) {
       return NextResponse.json(
-        { error: "Invalid enrollment number" },
-        { status: 400 }
+        { success: false, error: "Student not found" },
+        { status: 404 },
       );
     }
 
-    await connectDB();
+    // Get recent punches for this student
+    const recentPunches = await Punch.find({ student_id: id })
+      .sort({ punch_time: -1 })
+      .limit(10)
+      .lean();
 
-    const student = await Student.findOne({
-      enroll_number: id.trim(),
-    })
-      .select("-__v")
-      .lean()
-      .exec();
-
-    if (!student) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(formatStudentResponse(student));
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...student,
+        recentPunches,
+      },
+    });
   } catch (error) {
     console.error("Error fetching student:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        success: false,
+        error: "Failed to fetch student",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
 
-// PUT update student
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Await params since they're now a Promise in newer Next.js versions
-    const { id } = await context.params;
+    await dbConnect();
+
+    const { id } = params;
     const body = await request.json();
-    const { name, card_number } = body;
 
-    if (!id || typeof id !== "string") {
+    // Remove fields that shouldn't be updated
+    delete body._id;
+    delete body.createdAt;
+    delete body.updatedAt;
+
+    const student = await Student.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: true },
+    );
+
+    if (!student) {
       return NextResponse.json(
-        { error: "Invalid enrollment number" },
-        { status: 400 }
-      );
-    }
-
-    // Validate input
-    const validation = validateRequiredFields(body, ["name"]);
-    if (validation) {
-      return NextResponse.json({ error: validation }, { status: 400 });
-    }
-
-    if (typeof name !== "string") {
-      return NextResponse.json(
-        { error: "Name must be a string" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    // Check if student exists
-    const existingStudent = await Student.findOne({
-      enroll_number: id.trim(),
-    }).exec();
-
-    if (!existingStudent) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    }
-
-    // Update student
-    const updatedStudent = await Student.findOneAndUpdate(
-      { enroll_number: id.trim() },
-      {
-        name: name.trim(),
-        card_number: card_number
-          ? card_number.trim()
-          : existingStudent.card_number,
-      },
-      { new: true }
-    )
-      .select("-__v")
-      .lean()
-      .exec();
-
-    if (!updatedStudent) {
-      return NextResponse.json(
-        { error: "Failed to update student" },
-        { status: 500 }
+        { success: false, error: "Student not found" },
+        { status: 404 },
       );
     }
 
     return NextResponse.json({
-      message: "Student updated successfully",
-      student: formatStudentResponse(updatedStudent),
+      success: true,
+      data: student,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating student:", error);
 
-    // Handle mongoose validation errors
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "ValidationError"
-    ) {
+    if (error.code === 11000) {
       return NextResponse.json(
-        { error: "Validation error: Please check your input data" },
-        { status: 400 }
+        {
+          success: false,
+          error: "Duplicate entry detected",
+          message: error.message,
+        },
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        success: false,
+        error: "Failed to update student",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
 
-// DELETE student
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Await params since they're now a Promise in newer Next.js versions
-    const { id } = await context.params;
+    await dbConnect();
 
-    if (!id || typeof id !== "string") {
+    const { id } = params;
+
+    const student = await Student.findByIdAndDelete(id);
+
+    if (!student) {
       return NextResponse.json(
-        { error: "Invalid enrollment number" },
-        { status: 400 }
+        { success: false, error: "Student not found" },
+        { status: 404 },
       );
     }
 
-    await connectDB();
-
-    // Find and delete student
-    const deletedStudent = await Student.findOneAndDelete({
-      enroll_number: id.trim(),
-    }).exec();
-
-    if (!deletedStudent) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    }
-
-    // Also delete associated user account if it exists
-    try {
-      await UserData.findOneAndDelete({
-        enroll_no: id.trim(),
-      }).exec();
-    } catch (userError) {
-      // Log but don't fail if user deletion fails
-      console.warn("Could not delete associated user account:", userError);
-    }
+    // Optionally delete associated punches
+    await Punch.deleteMany({ student_id: id });
 
     return NextResponse.json({
+      success: true,
       message: "Student deleted successfully",
-      deletedStudent: {
-        id: deletedStudent._id.toString(),
-        enroll_number: deletedStudent.enroll_number,
-        name: deletedStudent.name,
-      },
     });
   } catch (error) {
     console.error("Error deleting student:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        success: false,
+        error: "Failed to delete student",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

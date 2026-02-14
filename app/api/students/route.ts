@@ -1,118 +1,133 @@
+// FILE: app/api/students/route.js
+// API Route: GET /api/students - Fetch all students with filters
+// API Route: POST /api/students - Create a new student
+
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
+import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
-import { formatStudentResponse, validateRequiredFields } from "@/lib/db-utils";
 
-// Interface for request with potential user info
-interface AuthRequest extends NextRequest {
-  user?: {
-    id: string;
-    email_id: string;
-    enroll_no: string;
-  };
-}
-
-// Simple error handler
-function handleError(error: unknown) {
-  console.error("API Error:", error);
-  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-}
-
-// GET all students
-export async function GET(_request: AuthRequest) {
+export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    await dbConnect();
 
-    const students = await Student.find({})
-      .select("enroll_number name card_number createdAt updatedAt")
-      .lean()
-      .exec();
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search");
+    const course = searchParams.get("course");
+    const year = searchParams.get("year");
+    const section = searchParams.get("section");
 
-    // Transform the data using our utility function
-    const formattedStudents = students.map((student) =>
-      formatStudentResponse(student)
-    );
+    let query: any = {};
 
-    return NextResponse.json(formattedStudents);
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { enroll_number: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (course) query.course = course;
+    if (year) query.year = parseInt(year);
+    if (section) query.section = section;
+
+    const students = await Student.find(query)
+      .select(
+        "enroll_number name email phone course year section rfid_tag is_active",
+      )
+      .sort({ name: 1 })
+      .lean();
+
+    return NextResponse.json({
+      success: true,
+      data: students,
+      count: students.length,
+    });
   } catch (error) {
-    return handleError(error);
+    console.error("Error fetching students:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch students",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
-// POST new student
-export async function POST(request: AuthRequest) {
+export async function POST(request: NextRequest) {
   try {
+    await dbConnect();
+
     const body = await request.json();
-    const { enroll_number, name, card_number } = body;
 
     // Validate required fields
-    const validation = validateRequiredFields(body, ["enroll_number", "name"]);
-    if (validation) {
-      return NextResponse.json({ error: validation }, { status: 400 });
+    const requiredFields = [
+      "enroll_number",
+      "name",
+      "email",
+      "phone",
+      "course",
+      "year",
+      "section",
+    ];
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Missing required field: ${field}`,
+          },
+          { status: 400 },
+        );
+      }
     }
-
-    // Type validation
-    if (typeof enroll_number !== "string" || typeof name !== "string") {
-      return NextResponse.json(
-        { error: "Invalid field types" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
 
     // Check if student already exists
     const existingStudent = await Student.findOne({
-      enroll_number: enroll_number.trim(),
-    })
-      .lean()
-      .exec();
+      $or: [{ enroll_number: body.enroll_number }, { email: body.email }],
+    });
 
     if (existingStudent) {
       return NextResponse.json(
-        { error: "Student with this enrollment number already exists" },
-        { status: 409 }
+        {
+          success: false,
+          error: "Student with this enrollment number or email already exists",
+        },
+        { status: 409 },
       );
     }
 
-    // Create new student
-    const student = await Student.create({
-      enroll_number: enroll_number.trim(),
-      name: name.trim(),
-      card_number: card_number ? card_number.trim() : "",
-    });
+    const student = await Student.create(body);
 
-    return NextResponse.json({
-      message: "Student created successfully",
-      student: formatStudentResponse(student),
-    });
-  } catch (error) {
-    // Handle mongoose validation errors
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "ValidationError"
-    ) {
+    return NextResponse.json(
+      {
+        success: true,
+        data: student,
+      },
+      { status: 201 },
+    );
+  } catch (error: any) {
+    console.error("Error creating student:", error);
+
+    if (error.code === 11000) {
       return NextResponse.json(
-        { error: "Validation error: Please check your input data" },
-        { status: 400 }
+        {
+          success: false,
+          error: "Duplicate entry detected",
+          message: error.message,
+        },
+        { status: 409 },
       );
     }
 
-    // Handle duplicate key errors
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === 11000
-    ) {
-      return NextResponse.json(
-        { error: "Student with this enrollment number already exists" },
-        { status: 409 }
-      );
-    }
-
-    return handleError(error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to create student",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

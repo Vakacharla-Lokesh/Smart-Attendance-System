@@ -1,47 +1,68 @@
-// models/Student.ts
-import { Schema, model, models, Document, Types } from "mongoose";
+import mongoose from "mongoose";
 
-export interface IStudent {
-  enroll_number: string;
-  name: string;
-  card_number: string;
-}
-
-export interface IStudentDocument extends IStudent, Document {
-  _id: Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const StudentSchema = new Schema<IStudentDocument>(
+const studentSchema = new mongoose.Schema(
   {
     enroll_number: {
       type: String,
-      required: [true, "Enrollment number is required"],
+      required: true,
       unique: true,
       trim: true,
     },
     name: {
       type: String,
-      required: [true, "Name is required"],
+      required: true,
       trim: true,
     },
-    card_number: {
+    email: {
       type: String,
-      required: false,
-      default: "",
+      required: true,
+      unique: true,
       trim: true,
+      lowercase: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    course: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    year: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+    },
+    section: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    rfid_tag: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
     },
   },
   {
     timestamps: true,
-    collection: "Student",
-  }
+  },
 );
 
-StudentSchema.index({ enroll_number: 1 }, { unique: true });
+studentSchema.index({ enroll_number: 1 });
+studentSchema.index({ email: 1 });
+studentSchema.index({ rfid_tag: 1 });
+studentSchema.index({ course: 1, year: 1, section: 1 });
 
 const Student =
-  models.Student || model<IStudentDocument>("Student", StudentSchema);
+  mongoose.models.Student || mongoose.model("Student", studentSchema);
 
 export default Student;

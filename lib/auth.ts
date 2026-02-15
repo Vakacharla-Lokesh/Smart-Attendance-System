@@ -21,7 +21,7 @@ export interface JWTPayload {
 }
 
 export async function authenticateUser(
-  request: AuthRequest
+  request: AuthRequest,
 ): Promise<NextResponse | null> {
   try {
     const authHeader = request.headers.get("authorization");
@@ -29,14 +29,14 @@ export async function authenticateUser(
     if (!authHeader) {
       return NextResponse.json(
         { error: "Authentication required - No authorization header" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Authentication required - Invalid header format" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -45,7 +45,7 @@ export async function authenticateUser(
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -56,7 +56,7 @@ export async function authenticateUser(
     if (!decoded.id || !decoded.email_id || !decoded.enroll_no) {
       return NextResponse.json(
         { error: "Invalid token payload" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -74,27 +74,27 @@ export async function authenticateUser(
     if (error instanceof jwt.JsonWebTokenError) {
       return NextResponse.json(
         { error: "Invalid authentication token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (error instanceof jwt.TokenExpiredError) {
       return NextResponse.json(
         { error: "Authentication token expired" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
       { error: "Authentication failed" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 }
 
 // Helper function to generate JWT tokens
 export function generateToken(
-  payload: Omit<JWTPayload, "iat" | "exp">
+  payload: Omit<JWTPayload, "iat" | "exp">,
 ): string {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: "7d",
@@ -109,7 +109,7 @@ export function verifyToken(token: string): JWTPayload {
 
 // Middleware-style auth check
 export function requireAuth(
-  handler: (request: AuthRequest) => Promise<NextResponse>
+  handler: (request: AuthRequest) => Promise<NextResponse>,
 ) {
   return async (request: AuthRequest) => {
     const authError = await authenticateUser(request);
@@ -117,4 +117,29 @@ export function requireAuth(
 
     return handler(request);
   };
+}
+
+// Add this interface
+export interface AdminRequest extends NextRequest {
+  user?: {
+    id: string;
+    email_id: string;
+    enroll_no: string;
+    is_admin?: boolean;
+  };
+}
+
+// Add this function
+export async function authenticateAdmin(
+  request: AdminRequest,
+): Promise<NextResponse | null> {
+  // First authenticate as regular user
+  const authError = await authenticateUser(request as AuthRequest);
+  if (authError) return authError;
+
+  // Check if user is admin (you need an "is_admin" field in your User model)
+  // For now, we'll just check authentication
+  // TODO: Add admin role check from database
+
+  return null; // No error, admin authentication successful
 }

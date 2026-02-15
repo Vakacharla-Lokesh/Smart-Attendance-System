@@ -1,5 +1,5 @@
 // app/api/attendance/pending/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { authenticateUser, AuthRequest } from "@/lib/auth";
 import { getPunchFromQueue, removePunchFromQueue } from "@/lib/redis";
 import { verifyAttendanceEligibility } from "@/lib/location-utils";
@@ -29,7 +29,7 @@ export async function GET(request: PendingAttendanceRequest) {
     if (!enroll_number) {
       return NextResponse.json(
         { error: "User enrollment number not found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,7 +42,7 @@ export async function GET(request: PendingAttendanceRequest) {
           has_pending: false,
           message: "No pending attendance requests",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -54,17 +54,20 @@ export async function GET(request: PendingAttendanceRequest) {
           room_id: pendingPunch.room_id,
           scanner_id: pendingPunch.scanner_id,
           queued_at: new Date(pendingPunch.timestamp).toISOString(),
-          expires_in_seconds: Math.max(0, 600 - (Date.now() - pendingPunch.timestamp) / 1000),
+          expires_in_seconds: Math.max(
+            0,
+            600 - (Date.now() - pendingPunch.timestamp) / 1000,
+          ),
         },
         message: "Please submit your location to verify attendance",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Pending attendance GET error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -87,7 +90,7 @@ export async function POST(request: PendingAttendanceRequest) {
     if (!enroll_number) {
       return NextResponse.json(
         { error: "User enrollment number not found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +105,7 @@ export async function POST(request: PendingAttendanceRequest) {
     ) {
       return NextResponse.json(
         { error: "Invalid latitude or longitude" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -112,7 +115,7 @@ export async function POST(request: PendingAttendanceRequest) {
     if (!pendingPunch) {
       return NextResponse.json(
         { error: "No pending attendance request found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -120,7 +123,7 @@ export async function POST(request: PendingAttendanceRequest) {
     const eligibility = await verifyAttendanceEligibility(
       pendingPunch.room_id,
       latitude,
-      longitude
+      longitude,
     );
 
     if (!eligibility.eligible) {
@@ -129,7 +132,7 @@ export async function POST(request: PendingAttendanceRequest) {
           message: "Attendance verification failed",
           ...eligibility,
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -141,8 +144,8 @@ export async function POST(request: PendingAttendanceRequest) {
       Date.UTC(
         attendanceDate.getUTCFullYear(),
         attendanceDate.getUTCMonth(),
-        attendanceDate.getUTCDate()
-      )
+        attendanceDate.getUTCDate(),
+      ),
     );
 
     let attendanceRecord = await AttendanceRecord.findOne({
@@ -167,7 +170,7 @@ export async function POST(request: PendingAttendanceRequest) {
       const alreadyMarked = attendanceRecord.attendance_entries.some(
         (entry: any) =>
           entry.date.toISOString().split("T")[0] ===
-          dateOnly.toISOString().split("T")[0]
+          dateOnly.toISOString().split("T")[0],
       );
 
       if (!alreadyMarked) {
@@ -184,7 +187,7 @@ export async function POST(request: PendingAttendanceRequest) {
             message: "Attendance already marked for today",
             status: "already_marked",
           },
-          { status: 409 }
+          { status: 409 },
         );
       }
     }
@@ -192,9 +195,9 @@ export async function POST(request: PendingAttendanceRequest) {
     // Remove from queue after successful verification
     await removePunchFromQueue(enroll_number);
 
-    console.log(
-      `Attendance marked for ${enroll_number} in room ${pendingPunch.room_id}`
-    );
+    // console.log(
+    //   `Attendance marked for ${enroll_number} in room ${pendingPunch.room_id}`,
+    // );
 
     return NextResponse.json(
       {
@@ -208,13 +211,13 @@ export async function POST(request: PendingAttendanceRequest) {
           marked_at: new Date().toISOString(),
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Pending attendance POST error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

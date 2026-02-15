@@ -54,10 +54,12 @@ export default function RoomManagement() {
   useEffect(() => {
     checkAuth();
     fetchRooms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterRooms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, rooms]);
 
   const checkAuth = () => {
@@ -461,7 +463,8 @@ export default function RoomManagement() {
                         colSpan={7}
                         className="p-8 text-center text-gray-400"
                       >
-                        No rooms found. Click "Add Room" to create one.
+                        No rooms found. Click &quot;Add Room&quot; to create
+                        one.
                       </td>
                     </tr>
                   ) : (

@@ -17,7 +17,7 @@ export const GET = withAdmin(async (request: AdminRequest) => {
     const floor = url.searchParams.get("floor");
     const search = url.searchParams.get("search");
 
-    let query: any = {};
+    const query: any = {};
 
     if (building) query.building = building;
     if (floor) query.floor = floor;

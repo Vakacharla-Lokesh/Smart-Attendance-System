@@ -64,10 +64,12 @@ export default function CourseManagement() {
   useEffect(() => {
     checkAuth();
     fetchCourses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterCourses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, courses]);
 
   const checkAuth = () => {

@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Punch from "@/models/Punch";
 import Student from "@/models/Student";
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
@@ -12,9 +12,9 @@ export async function GET(request) {
     const scannerId = searchParams.get("scanner_id");
     const startDate = searchParams.get("start_date");
     const endDate = searchParams.get("end_date");
-    const limit = parseInt(searchParams.get("limit")) || 50;
+    const limit = parseInt(searchParams.get("limit") || "50") || 50;
 
-    let query = {};
+    const query: any = {};
 
     if (studentId) query.student_id = studentId;
     if (scannerId) query.scanner_id = scannerId;
@@ -42,14 +42,14 @@ export async function GET(request) {
       {
         success: false,
         error: "Failed to fetch punches",
-        message: error.message,
+        message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     );
   }
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
@@ -121,7 +121,7 @@ export async function POST(request) {
       {
         success: false,
         error: "Failed to create punch",
-        message: error.message,
+        message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     );

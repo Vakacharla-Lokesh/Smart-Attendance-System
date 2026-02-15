@@ -3,11 +3,14 @@ import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
 import Punch from "@/models/Punch";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params; // ← AWAIT params here
+
   try {
     await dbConnect();
-
-    const { id } = params;
 
     const student = await Student.findById(id).lean();
 
@@ -44,11 +47,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params; // ← AWAIT params here
+
   try {
     await dbConnect();
 
-    const { id } = params;
     const body = await request.json();
 
     // Remove fields that shouldn't be updated
@@ -98,11 +105,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params; // ← AWAIT params here
+
   try {
     await dbConnect();
-
-    const { id } = params;
 
     const student = await Student.findByIdAndDelete(id);
 

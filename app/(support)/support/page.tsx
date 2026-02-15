@@ -1,8 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function page() {
+export default function SupportPage() {
   return (
     <>
       <div className="p-2 rounded-4xl bg-gradient-to-b bg-black">
@@ -83,9 +85,3 @@ export default function page() {
     </>
   );
 }
-
-export const metadata = {
-  title: "Contact Admin | Smart RFID Attendance System",
-  description:
-    "Request account creation by contacting the system administrator.",
-};

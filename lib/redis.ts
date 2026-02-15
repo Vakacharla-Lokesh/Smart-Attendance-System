@@ -26,9 +26,9 @@ export async function addPunchToQueue(
   try {
     const key = `${QUEUE_PREFIX}${entry.enroll_number}`;
     await redis.setex(key, QUEUE_TTL, JSON.stringify(entry));
-    console.log(
-      `Added punch to queue for ${entry.enroll_number}, TTL: ${QUEUE_TTL}s`,
-    );
+    // console.log(
+    //   `Added punch to queue for ${entry.enroll_number}, TTL: ${QUEUE_TTL}s`,
+    // );
     return entry;
   } catch (error) {
     console.error("Error adding punch to queue:", error);
@@ -79,7 +79,7 @@ export async function removePunchFromQueue(
   try {
     const key = `${QUEUE_PREFIX}${enroll_number}`;
     const result = await redis.del(key);
-    console.log(`Removed punch from queue for ${enroll_number}`);
+    // console.log(`Removed punch from queue for ${enroll_number}`);
     return result > 0;
   } catch (error) {
     console.error("Error removing punch from queue:", error);

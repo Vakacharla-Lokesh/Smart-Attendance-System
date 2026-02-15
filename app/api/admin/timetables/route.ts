@@ -19,7 +19,7 @@ export const GET = withAdmin(async (request: AdminRequest) => {
     const course_id = url.searchParams.get("course_id");
     const day = url.searchParams.get("day");
 
-    let query: any = {};
+    const query: any = {};
 
     if (room_id) query.room_id = room_id;
     if (course_id) query.course_id = course_id;

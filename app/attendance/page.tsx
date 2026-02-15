@@ -5,14 +5,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Calendar,
-  Download,
-  Filter,
-  Search,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
+import { Calendar, Download, Filter, ArrowUp, ArrowDown } from "lucide-react";
 import { Punch, Student, Filters } from "@/types";
 
 export default function AttendancePage() {
@@ -30,6 +23,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -113,9 +107,15 @@ export default function AttendancePage() {
     const rows = punches.map((punch: Punch) => [
       new Date(punch.punch_time).toLocaleDateString(),
       new Date(punch.punch_time).toLocaleTimeString(),
-      typeof punch.student_id === 'object' ? punch.student_id?.name || "Unknown" : "Unknown",
-      typeof punch.student_id === 'object' ? punch.student_id?.enroll_number || "N/A" : "N/A",
-      typeof punch.student_id === 'object' ? punch.student_id?.course || "N/A" : "N/A",
+      typeof punch.student_id === "object"
+        ? punch.student_id?.name || "Unknown"
+        : "Unknown",
+      typeof punch.student_id === "object"
+        ? punch.student_id?.enroll_number || "N/A"
+        : "N/A",
+      typeof punch.student_id === "object"
+        ? punch.student_id?.course || "N/A"
+        : "N/A",
       punch.punch_type === "in" ? "Check In" : "Check Out",
       punch.scanner_id,
     ]);
@@ -360,15 +360,24 @@ export default function AttendancePage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">
-                        {typeof punch.student_id === 'object' && punch.student_id !== null ? punch.student_id.name : "Unknown"}
+                        {typeof punch.student_id === "object" &&
+                        punch.student_id !== null
+                          ? punch.student_id.name
+                          : "Unknown"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {typeof punch.student_id === 'object' && punch.student_id !== null ? punch.student_id.enroll_number : "N/A"}
+                      {typeof punch.student_id === "object" &&
+                      punch.student_id !== null
+                        ? punch.student_id.enroll_number
+                        : "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                        {typeof punch.student_id === 'object' && punch.student_id !== null ? punch.student_id.course : "N/A"}
+                        {typeof punch.student_id === "object" &&
+                        punch.student_id !== null
+                          ? punch.student_id.course
+                          : "N/A"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

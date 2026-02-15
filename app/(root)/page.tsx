@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,9 +98,3 @@ export default function Page() {
     </>
   );
 }
-
-export const metadata = {
-  title: "Smart RFID Attendance System",
-  description:
-    "IoT-based smart attendance tracking system with RFID, geolocation, and anti-proxy authentication.",
-};

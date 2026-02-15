@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -75,9 +77,3 @@ export default function page() {
     </>
   );
 }
-
-export const metadata = {
-  title: "FAQs | Smart RFID Attendance System",
-  description:
-    "Frequently asked questions about the Smart RFID Attendance System.",
-};

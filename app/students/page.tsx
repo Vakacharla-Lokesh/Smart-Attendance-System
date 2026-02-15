@@ -1,8 +1,9 @@
+"use client";
+
 // FILE: app/students/page.js
 // PAGE: Student Management Page - CRUD operations for students
 // ROUTE: /students
 
-"use client";
 
 import { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash2, Users, AlertCircle } from "lucide-react";

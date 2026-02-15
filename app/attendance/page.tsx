@@ -1,8 +1,9 @@
+"use client";
+
 // FILE: app/attendance/page.js
 // PAGE: Attendance Records Page - View, filter, and export attendance records
 // ROUTE: /attendance
 
-"use client";
 
 import { useState, useEffect } from "react";
 import { Calendar, Download, Filter, ArrowUp, ArrowDown } from "lucide-react";

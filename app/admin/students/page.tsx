@@ -1,21 +1,21 @@
 "use client";
 
-// FILE: app/students/page.js
-// PAGE: Student Management Page - CRUD operations for students
-// ROUTE: /students
-
-
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import AdminLayout from "@/components/AdminLayout";
 import { Plus, Search, Edit, Trash2, Users, AlertCircle } from "lucide-react";
 import { Student, StudentFormData } from "@/types";
 
 export default function StudentsPage() {
+  const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [adminName, setAdminName] = useState("Admin User");
+  const [adminEmail, setAdminEmail] = useState("admin@university.edu");
   const [formData, setFormData] = useState<StudentFormData>({
     enroll_number: "",
     name: "",
@@ -29,8 +29,25 @@ export default function StudentsPage() {
   });
 
   useEffect(() => {
+    checkAuth();
     fetchStudents();
   }, []);
+
+  const checkAuth = () => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    // Set admin info
+    if (user) {
+      const userData = JSON.parse(user);
+      setAdminName(userData.name || "Admin User");
+      setAdminEmail(userData.email || "admin@university.edu");
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -153,206 +170,205 @@ export default function StudentsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading students...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-lg text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">
-                Student Management
-              </h1>
-            </div>
-            <button
-              onClick={() => {
-                setEditingStudent(null);
-                resetForm();
-                setShowAddModal(true);
-              }}
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add Student
-            </button>
+    <AdminLayout
+      adminName={adminName}
+      adminEmail={adminEmail}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+            <Users className="w-6 h-6" />
           </div>
-          <p className="text-gray-600 mt-2">
-            Manage student records and information
-          </p>
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              Student Management
+            </h1>
+            <p className="text-sm text-gray-400">
+              Manage student records and information
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setEditingStudent(null);
+            resetForm();
+            setShowAddModal(true);
+          }}
+          className="flex items-center gap-2 bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700 transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+          Add Student
+        </button>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-900/20 border border-red-800 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search by name, enrollment number, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Total Students</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                {students.length}
+              </p>
+            </div>
+            <Users className="w-12 h-12 text-blue-600 opacity-20" />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Active Students</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">
+                {students.filter((s) => s.is_active).length}
+              </p>
+            </div>
+            <Users className="w-12 h-12 text-green-600 opacity-20" />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Search Results</p>
+              <p className="text-3xl font-bold text-purple-600 mt-1">
+                {filteredStudents.length}
+              </p>
+            </div>
+            <Search className="w-12 h-12 text-purple-600 opacity-20" />
+          </div>
+        </div>
+      </div>
+
+      {/* Students Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Enrollment No.
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Course
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Year/Section
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredStudents.map((student) => (
+                <tr
+                  key={student._id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="font-medium text-gray-900">
+                      {student.enroll_number}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {student.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {student.phone}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {student.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      {student.course}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    Year {student.year} - {student.section}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {student.is_active ? (
+                      <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                        Inactive
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEdit(student)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(student._id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <p className="text-red-700">{error}</p>
+        {filteredStudents.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No students found</p>
           </div>
         )}
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search by name, enrollment number, or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Total Students</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {students.length}
-                </p>
-              </div>
-              <Users className="w-12 h-12 text-blue-600 opacity-20" />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Active Students</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">
-                  {students.filter((s) => s.is_active).length}
-                </p>
-              </div>
-              <Users className="w-12 h-12 text-green-600 opacity-20" />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Search Results</p>
-                <p className="text-3xl font-bold text-purple-600 mt-1">
-                  {filteredStudents.length}
-                </p>
-              </div>
-              <Search className="w-12 h-12 text-purple-600 opacity-20" />
-            </div>
-          </div>
-        </div>
-
-        {/* Students Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Enrollment No.
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Course
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Year/Section
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredStudents.map((student) => (
-                  <tr
-                    key={student._id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-medium text-gray-900">
-                        {student.enroll_number}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {student.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {student.phone}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {student.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                        {student.course}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      Year {student.year} - {student.section}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {student.is_active ? (
-                        <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEdit(student)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(student._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredStudents.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No students found</p>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Add/Edit Modal */}
@@ -545,6 +561,6 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,15 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Calendar,
-  Plus,
-  Edit,
-  Trash2,
-  ArrowLeft,
-  X,
-  Clock,
-} from "lucide-react";
+import { Calendar, Plus, Edit, Trash2, X, Clock } from "lucide-react";
 
 interface Room {
   _id: string;
@@ -69,6 +61,8 @@ export default function TimetableManagement() {
   const [filterDay, setFilterDay] = useState<string>("all");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [adminName, setAdminName] = useState("Admin User");
+  const [adminEmail, setAdminEmail] = useState("admin@university.edu");
 
   const [formData, setFormData] = useState({
     room_id: "",
@@ -91,13 +85,22 @@ export default function TimetableManagement() {
   useEffect(() => {
     checkAuth();
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAuth = () => {
     const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
     if (!token) {
       router.push("/login");
+      return;
+    }
+
+    // Set admin info
+    if (user) {
+      const userData = JSON.parse(user);
+      setAdminName(userData.name || "Admin User");
+      setAdminEmail(userData.email || "admin@university.edu");
     }
   };
 
@@ -264,339 +267,326 @@ export default function TimetableManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/admin">
+    <AdminLayout
+      adminName={adminName}
+      adminEmail={adminEmail}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              Timetable Management
+            </h1>
+            <p className="text-sm text-gray-400">
+              Schedule classes with rooms and time slots
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={() => setShowForm(true)}
+          className="bg-purple-600"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Timetable
+        </Button>
+      </div>
+      {/* Alerts */}
+      {error && (
+        <Alert
+          variant="destructive"
+          className="mb-4"
+        >
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert className="mb-4 bg-green-900/20 border-green-800">
+          <AlertDescription className="text-green-400">
+            {success}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>
+                {editingTimetable ? "Edit Timetable" : "Add New Timetable"}
+              </CardTitle>
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={resetForm}
               >
-                <ArrowLeft className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </Button>
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Timetable Management</h1>
-                <p className="text-sm text-gray-400">
-                  Schedule classes with rooms and time slots
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+                <div>
+                  <Label>Room *</Label>
+                  <Select
+                    value={formData.room_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, room_id: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700">
+                      <SelectValue placeholder="Select a room" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rooms.map((room) => (
+                        <SelectItem
+                          key={room._id}
+                          value={room._id}
+                        >
+                          {room.room_number} - {room.building}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Course *</Label>
+                  <Select
+                    value={formData.course_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, course_id: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700">
+                      <SelectValue placeholder="Select a course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.map((course) => (
+                        <SelectItem
+                          key={course._id}
+                          value={course._id}
+                        >
+                          {course.course_code} - {course.course_name}
+                          {course.instructor_name &&
+                            ` (${course.instructor_name})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Day *</Label>
+                  <Select
+                    value={formData.day}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, day: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700">
+                      <SelectValue placeholder="Select a day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {days.map((day) => (
+                        <SelectItem
+                          key={day}
+                          value={day}
+                        >
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Start Time *</Label>
+                    <Input
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          start_time: e.target.value,
+                        })
+                      }
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <Label>End Time *</Label>
+                    <Input
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) =>
+                        setFormData({ ...formData, end_time: e.target.value })
+                      }
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={resetForm}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-purple-600"
+                  >
+                    {editingTimetable ? "Update Timetable" : "Create Timetable"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filter */}
+      <div className="mb-6">
+        <Label>Filter by Day</Label>
+        <Select
+          value={filterDay}
+          onValueChange={setFilterDay}
+        >
+          <SelectTrigger className="w-64 bg-gray-900 border-gray-800">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Days</SelectItem>
+            {days.map((day) => (
+              <SelectItem
+                key={day}
+                value={day}
+              >
+                {day}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Timetables by Day */}
+      {days.map((day) => {
+        const dayTimetables = filteredTimetables.filter((t) => t.day === day);
+
+        if (filterDay !== "all" && filterDay !== day) return null;
+        if (dayTimetables.length === 0 && filterDay !== "all") return null;
+
+        return (
+          <Card
+            key={day}
+            className="bg-gray-900 border-gray-800 mb-4"
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                {day}
+                <span className="text-sm font-normal text-gray-400">
+                  ({dayTimetables.length} classes)
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dayTimetables.length === 0 ? (
+                <p className="text-gray-400 text-center py-4">
+                  No classes scheduled for {day}
                 </p>
-              </div>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-purple-600"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Timetable
-          </Button>
-        </div>
-      </header>
+              ) : (
+                <div className="space-y-2">
+                  {dayTimetables
+                    .sort(
+                      (a, b) =>
+                        new Date(a.start_time).getTime() -
+                        new Date(b.start_time).getTime(),
+                    )
+                    .map((timetable) => {
+                      const startTime = new Date(
+                        timetable.start_time,
+                      ).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                      const endTime = new Date(
+                        timetable.end_time,
+                      ).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Alerts */}
-        {error && (
-          <Alert
-            variant="destructive"
-            className="mb-4"
-          >
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert className="mb-4 bg-green-900/20 border-green-800">
-            <AlertDescription className="text-green-400">
-              {success}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl bg-gray-900 border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>
-                  {editingTimetable ? "Edit Timetable" : "Add New Timetable"}
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetForm}
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-4"
-                >
-                  <div>
-                    <Label>Room *</Label>
-                    <Select
-                      value={formData.room_id}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, room_id: value })
-                      }
-                      required
-                    >
-                      <SelectTrigger className="bg-gray-800 border-gray-700">
-                        <SelectValue placeholder="Select a room" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rooms.map((room) => (
-                          <SelectItem
-                            key={room._id}
-                            value={room._id}
-                          >
-                            {room.room_number} - {room.building}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Course *</Label>
-                    <Select
-                      value={formData.course_id}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, course_id: value })
-                      }
-                      required
-                    >
-                      <SelectTrigger className="bg-gray-800 border-gray-700">
-                        <SelectValue placeholder="Select a course" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {courses.map((course) => (
-                          <SelectItem
-                            key={course._id}
-                            value={course._id}
-                          >
-                            {course.course_code} - {course.course_name}
-                            {course.instructor_name &&
-                              ` (${course.instructor_name})`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Day *</Label>
-                    <Select
-                      value={formData.day}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, day: value })
-                      }
-                      required
-                    >
-                      <SelectTrigger className="bg-gray-800 border-gray-700">
-                        <SelectValue placeholder="Select a day" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {days.map((day) => (
-                          <SelectItem
-                            key={day}
-                            value={day}
-                          >
-                            {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Start Time *</Label>
-                      <Input
-                        type="time"
-                        value={formData.start_time}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            start_time: e.target.value,
-                          })
-                        }
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label>End Time *</Label>
-                      <Input
-                        type="time"
-                        value={formData.end_time}
-                        onChange={(e) =>
-                          setFormData({ ...formData, end_time: e.target.value })
-                        }
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={resetForm}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-purple-600"
-                    >
-                      {editingTimetable
-                        ? "Update Timetable"
-                        : "Create Timetable"}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Filter */}
-        <div className="mb-6">
-          <Label>Filter by Day</Label>
-          <Select
-            value={filterDay}
-            onValueChange={setFilterDay}
-          >
-            <SelectTrigger className="w-64 bg-gray-900 border-gray-800">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Days</SelectItem>
-              {days.map((day) => (
-                <SelectItem
-                  key={day}
-                  value={day}
-                >
-                  {day}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Timetables by Day */}
-        {days.map((day) => {
-          const dayTimetables = filteredTimetables.filter((t) => t.day === day);
-
-          if (filterDay !== "all" && filterDay !== day) return null;
-          if (dayTimetables.length === 0 && filterDay !== "all") return null;
-
-          return (
-            <Card
-              key={day}
-              className="bg-gray-900 border-gray-800 mb-4"
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  {day}
-                  <span className="text-sm font-normal text-gray-400">
-                    ({dayTimetables.length} classes)
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dayTimetables.length === 0 ? (
-                  <p className="text-gray-400 text-center py-4">
-                    No classes scheduled for {day}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {dayTimetables
-                      .sort(
-                        (a, b) =>
-                          new Date(a.start_time).getTime() -
-                          new Date(b.start_time).getTime(),
-                      )
-                      .map((timetable) => {
-                        const startTime = new Date(
-                          timetable.start_time,
-                        ).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        });
-                        const endTime = new Date(
-                          timetable.end_time,
-                        ).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        });
-
-                        return (
-                          <div
-                            key={timetable._id}
-                            className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2 text-purple-400">
-                                <Clock className="w-4 h-4" />
-                                <span className="font-mono text-sm">
-                                  {startTime} - {endTime}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="font-semibold">
-                                  {timetable.course_id.course_code} -{" "}
-                                  {timetable.course_id.course_name}
-                                </div>
-                                <div className="text-sm text-gray-400">
-                                  Room: {timetable.room_id.room_number} (
-                                  {timetable.room_id.building})
-                                  {timetable.course_id.instructor_name &&
-                                    ` • ${timetable.course_id.instructor_name}`}
-                                </div>
-                              </div>
+                      return (
+                        <div
+                          key={timetable._id}
+                          className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-purple-400">
+                              <Clock className="w-4 h-4" />
+                              <span className="font-mono text-sm">
+                                {startTime} - {endTime}
+                              </span>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEdit(timetable)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDelete(timetable)}
-                                className="text-red-400 hover:text-red-300"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                            <div>
+                              <div className="font-semibold">
+                                {timetable.course_id.course_code} -{" "}
+                                {timetable.course_id.course_name}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                Room: {timetable.room_id.room_number} (
+                                {timetable.room_id.building})
+                                {timetable.course_id.instructor_name &&
+                                  ` • ${timetable.course_id.instructor_name}`}
+                              </div>
                             </div>
                           </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(timetable)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDelete(timetable)}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
 
-        {/* Stats */}
-        <div className="mt-4 text-sm text-gray-400">
-          Total: {filteredTimetables.length} timetable entries
-        </div>
+      {/* Stats */}
+      <div className="mt-4 text-sm text-gray-400">
+        Total: {filteredTimetables.length} timetable entries
       </div>
-    </div>
+    </AdminLayout>
   );
 }

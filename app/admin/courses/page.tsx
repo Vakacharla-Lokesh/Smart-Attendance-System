@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,15 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  BookOpen,
-  Plus,
-  Edit,
-  Trash2,
-  ArrowLeft,
-  Search,
-  X,
-} from "lucide-react";
+import { BookOpen, Plus, Edit, Trash2, Search, X } from "lucide-react";
 
 interface Course {
   _id: string;
@@ -48,6 +40,8 @@ export default function CourseManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [adminName, setAdminName] = useState("Admin User");
+  const [adminEmail, setAdminEmail] = useState("admin@university.edu");
 
   const [formData, setFormData] = useState({
     course_code: "",
@@ -64,18 +58,27 @@ export default function CourseManagement() {
   useEffect(() => {
     checkAuth();
     fetchCourses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterCourses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, courses]);
 
   const checkAuth = () => {
     const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
     if (!token) {
       router.push("/login");
+      return;
+    }
+
+    // Set admin info
+    if (user) {
+      const userData = JSON.parse(user);
+      setAdminName(userData.name || "Admin User");
+      setAdminEmail(userData.email || "admin@university.edu");
     }
   };
 
@@ -237,343 +240,328 @@ export default function CourseManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/admin">
+    <AdminLayout
+      adminName={adminName}
+      adminEmail={adminEmail}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Course Management</h1>
+            <p className="text-sm text-gray-400">Create and manage courses</p>
+          </div>
+        </div>
+        <Button
+          onClick={() => setShowForm(true)}
+          className="bg-green-600"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Course
+        </Button>
+      </div>
+      {/* Alerts */}
+      {error && (
+        <Alert
+          variant="destructive"
+          className="mb-4"
+        >
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert className="mb-4 bg-green-900/20 border-green-800">
+          <AlertDescription className="text-green-400">
+            {success}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl bg-gray-900 border-gray-800 max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>
+                {editingCourse ? "Edit Course" : "Add New Course"}
+              </CardTitle>
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={resetForm}
               >
-                <ArrowLeft className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </Button>
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Course Management</h1>
-                <p className="text-sm text-gray-400">
-                  Create and manage courses
-                </p>
-              </div>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-green-600"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Course
-          </Button>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Alerts */}
-        {error && (
-          <Alert
-            variant="destructive"
-            className="mb-4"
-          >
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert className="mb-4 bg-green-900/20 border-green-800">
-            <AlertDescription className="text-green-400">
-              {success}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl bg-gray-900 border-gray-800 max-h-[90vh] overflow-y-auto">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>
-                  {editingCourse ? "Edit Course" : "Add New Course"}
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetForm}
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-4"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Course Code *</Label>
-                      <Input
-                        value={formData.course_code}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            course_code: e.target.value.toUpperCase(),
-                          })
-                        }
-                        placeholder="CSE301"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label>Department *</Label>
-                      <Input
-                        value={formData.department}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            department: e.target.value,
-                          })
-                        }
-                        placeholder="Computer Science"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Course Name *</Label>
+                    <Label>Course Code *</Label>
                     <Input
-                      value={formData.course_name}
+                      value={formData.course_code}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          course_name: e.target.value,
+                          course_code: e.target.value.toUpperCase(),
                         })
                       }
-                      placeholder="Data Structures and Algorithms"
+                      placeholder="CSE301"
                       required
                       className="bg-gray-800 border-gray-700"
                     />
                   </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label>Credits *</Label>
-                      <Select
-                        value={formData.credits}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, credits: value })
-                        }
-                      >
-                        <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 5, 6].map((n) => (
-                            <SelectItem
-                              key={n}
-                              value={n.toString()}
-                            >
-                              {n}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Year *</Label>
-                      <Select
-                        value={formData.year}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, year: value })
-                        }
-                      >
-                        <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4].map((n) => (
-                            <SelectItem
-                              key={n}
-                              value={n.toString()}
-                            >
-                              {n}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Semester *</Label>
-                      <Select
-                        value={formData.semester}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, semester: value })
-                        }
-                      >
-                        <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                            <SelectItem
-                              key={n}
-                              value={n.toString()}
-                            >
-                              {n}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div>
+                    <Label>Department *</Label>
+                    <Input
+                      value={formData.department}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          department: e.target.value,
+                        })
+                      }
+                      placeholder="Computer Science"
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Instructor Name</Label>
-                      <Input
-                        value={formData.instructor_name}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            instructor_name: e.target.value,
-                          })
-                        }
-                        placeholder="Dr. John Smith"
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label>Instructor Email</Label>
-                      <Input
-                        type="email"
-                        value={formData.instructor_email}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            instructor_email: e.target.value,
-                          })
-                        }
-                        placeholder="john.smith@university.edu"
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <Label>Course Name *</Label>
+                  <Input
+                    value={formData.course_name}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        course_name: e.target.value,
+                      })
+                    }
+                    placeholder="Data Structures and Algorithms"
+                    required
+                    className="bg-gray-800 border-gray-700"
+                  />
+                </div>
 
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={resetForm}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Credits *</Label>
+                    <Select
+                      value={formData.credits}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, credits: value })
+                      }
                     >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-green-600"
-                    >
-                      {editingCourse ? "Update Course" : "Create Course"}
-                    </Button>
+                      <SelectTrigger className="bg-gray-800 border-gray-700">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6].map((n) => (
+                          <SelectItem
+                            key={n}
+                            value={n.toString()}
+                          >
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                  <div>
+                    <Label>Year *</Label>
+                    <Select
+                      value={formData.year}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, year: value })
+                      }
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4].map((n) => (
+                          <SelectItem
+                            key={n}
+                            value={n.toString()}
+                          >
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Semester *</Label>
+                    <Select
+                      value={formData.semester}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, semester: value })
+                      }
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                          <SelectItem
+                            key={n}
+                            value={n.toString()}
+                          >
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Search by code, name, department, or instructor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-900 border-gray-800"
-            />
-          </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Instructor Name</Label>
+                    <Input
+                      value={formData.instructor_name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          instructor_name: e.target.value,
+                        })
+                      }
+                      placeholder="Dr. John Smith"
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <Label>Instructor Email</Label>
+                    <Input
+                      type="email"
+                      value={formData.instructor_email}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          instructor_email: e.target.value,
+                        })
+                      }
+                      placeholder="john.smith@university.edu"
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={resetForm}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-green-600"
+                  >
+                    {editingCourse ? "Update Course" : "Create Course"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
+      )}
 
-        {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCourses.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-gray-400">
-              No courses found. Click &quot;Add Course&quot; to create one.
-            </div>
-          ) : (
-            filteredCourses.map((course) => (
-              <Card
-                key={course._id}
-                className="bg-gray-900 border-gray-800 hover:bg-gray-800/50 transition-colors"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <code className="text-sm bg-gray-800 px-2 py-1 rounded text-green-400">
-                        {course.course_code}
-                      </code>
-                      <CardTitle className="mt-2 text-lg">
-                        {course.course_name}
-                      </CardTitle>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="text-sm text-gray-400">
-                    <p>
-                      <span className="font-medium">Department:</span>{" "}
-                      {course.department}
-                    </p>
-                    <p>
-                      <span className="font-medium">Credits:</span>{" "}
-                      {course.credits}
-                    </p>
-                    <p>
-                      <span className="font-medium">Year/Sem:</span> Year{" "}
-                      {course.year}, Sem {course.semester}
-                    </p>
-                    {course.instructor_name && (
-                      <p>
-                        <span className="font-medium">Instructor:</span>{" "}
-                        {course.instructor_name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(course)}
-                      className="flex-1"
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(course)}
-                      className="flex-1 text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="mt-6 text-sm text-gray-400">
-          Showing {filteredCourses.length} of {courses.length} courses
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Input
+            placeholder="Search by code, name, department, or instructor..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-900 border-gray-800"
+          />
         </div>
       </div>
-    </div>
+
+      {/* Courses Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredCourses.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-gray-400">
+            No courses found. Click &quot;Add Course&quot; to create one.
+          </div>
+        ) : (
+          filteredCourses.map((course) => (
+            <Card
+              key={course._id}
+              className="bg-gray-900 border-gray-800 hover:bg-gray-800/50 transition-colors"
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <code className="text-sm bg-gray-800 px-2 py-1 rounded text-green-400">
+                      {course.course_code}
+                    </code>
+                    <CardTitle className="mt-2 text-lg">
+                      {course.course_name}
+                    </CardTitle>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-sm text-gray-400">
+                  <p>
+                    <span className="font-medium">Department:</span>{" "}
+                    {course.department}
+                  </p>
+                  <p>
+                    <span className="font-medium">Credits:</span>{" "}
+                    {course.credits}
+                  </p>
+                  <p>
+                    <span className="font-medium">Year/Sem:</span> Year{" "}
+                    {course.year}, Sem {course.semester}
+                  </p>
+                  {course.instructor_name && (
+                    <p>
+                      <span className="font-medium">Instructor:</span>{" "}
+                      {course.instructor_name}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleEdit(course)}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDelete(course)}
+                    className="flex-1 text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="mt-6 text-sm text-gray-400">
+        Showing {filteredCourses.length} of {courses.length} courses
+      </div>
+    </AdminLayout>
   );
 }

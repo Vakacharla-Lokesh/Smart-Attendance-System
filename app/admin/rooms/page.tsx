@@ -2,22 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Building2,
-  Plus,
-  Edit,
-  Trash2,
-  ArrowLeft,
-  Search,
-  MapPin,
-  X,
-} from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Search, MapPin, X } from "lucide-react";
 
 interface Room {
   _id: string;
@@ -40,6 +31,8 @@ export default function RoomManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [adminName, setAdminName] = useState("Admin User");
+  const [adminEmail, setAdminEmail] = useState("admin@university.edu");
 
   const [formData, setFormData] = useState({
     room_number: "",
@@ -64,8 +57,17 @@ export default function RoomManagement() {
 
   const checkAuth = () => {
     const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
     if (!token) {
       router.push("/login");
+      return;
+    }
+
+    // Set admin info
+    if (user) {
+      const userData = JSON.parse(user);
+      setAdminName(userData.name || "Admin User");
+      setAdminEmail(userData.email || "admin@university.edu");
     }
   };
 
@@ -214,314 +216,296 @@ export default function RoomManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/admin">
+    <AdminLayout
+      adminName={adminName}
+      adminEmail={adminEmail}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Room Management</h1>
+            <p className="text-sm text-gray-400">
+              Manage classroom locations and geofences
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={() => setShowForm(true)}
+          className="bg-blue-600"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Room
+        </Button>
+      </div>
+      {/* Alerts */}
+      {error && (
+        <Alert
+          variant="destructive"
+          className="mb-4"
+        >
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert className="mb-4 bg-green-900/20 border-green-800">
+          <AlertDescription className="text-green-400">
+            {success}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>
+                {editingRoom ? "Edit Room" : "Add New Room"}
+              </CardTitle>
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={resetForm}
               >
-                <ArrowLeft className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </Button>
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Room Management</h1>
-                <p className="text-sm text-gray-400">
-                  Manage classroom locations and geofences
-                </p>
-              </div>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-600"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Room
-          </Button>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Alerts */}
-        {error && (
-          <Alert
-            variant="destructive"
-            className="mb-4"
-          >
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert className="mb-4 bg-green-900/20 border-green-800">
-            <AlertDescription className="text-green-400">
-              {success}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl bg-gray-900 border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>
-                  {editingRoom ? "Edit Room" : "Add New Room"}
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetForm}
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-4"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Room Number *</Label>
-                      <Input
-                        value={formData.room_number}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            room_number: e.target.value,
-                          })
-                        }
-                        placeholder="A101"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label>Building *</Label>
-                      <Input
-                        value={formData.building}
-                        onChange={(e) =>
-                          setFormData({ ...formData, building: e.target.value })
-                        }
-                        placeholder="Main Block"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Floor *</Label>
-                      <Input
-                        value={formData.floor}
-                        onChange={(e) =>
-                          setFormData({ ...formData, floor: e.target.value })
-                        }
-                        placeholder="1"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label>Scanner ID *</Label>
-                      <Input
-                        value={formData.scanner_id}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            scanner_id: e.target.value,
-                          })
-                        }
-                        placeholder="SCANNER_001"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Latitude *</Label>
-                      <Input
-                        type="number"
-                        step="any"
-                        value={formData.latitude}
-                        onChange={(e) =>
-                          setFormData({ ...formData, latitude: e.target.value })
-                        }
-                        placeholder="28.6139"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label>Longitude *</Label>
-                      <Input
-                        type="number"
-                        step="any"
-                        value={formData.longitude}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            longitude: e.target.value,
-                          })
-                        }
-                        placeholder="77.2090"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Geofence Radius (meters) *</Label>
+                    <Label>Room Number *</Label>
                     <Input
-                      type="number"
-                      value={formData.geofence_radius}
+                      value={formData.room_number}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          geofence_radius: e.target.value,
+                          room_number: e.target.value,
                         })
                       }
-                      placeholder="50"
+                      placeholder="A101"
                       required
                       className="bg-gray-800 border-gray-700"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Students must be within this radius to mark attendance
-                    </p>
                   </div>
-
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={resetForm}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-blue-600"
-                    >
-                      {editingRoom ? "Update Room" : "Create Room"}
-                    </Button>
+                  <div>
+                    <Label>Building *</Label>
+                    <Input
+                      value={formData.building}
+                      onChange={(e) =>
+                        setFormData({ ...formData, building: e.target.value })
+                      }
+                      placeholder="Main Block"
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
                   </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                </div>
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Search by room number, building, or scanner ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-900 border-gray-800"
-            />
-          </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Floor *</Label>
+                    <Input
+                      value={formData.floor}
+                      onChange={(e) =>
+                        setFormData({ ...formData, floor: e.target.value })
+                      }
+                      placeholder="1"
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <Label>Scanner ID *</Label>
+                    <Input
+                      value={formData.scanner_id}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          scanner_id: e.target.value,
+                        })
+                      }
+                      placeholder="SCANNER_001"
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Latitude *</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.latitude}
+                      onChange={(e) =>
+                        setFormData({ ...formData, latitude: e.target.value })
+                      }
+                      placeholder="28.6139"
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <Label>Longitude *</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.longitude}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          longitude: e.target.value,
+                        })
+                      }
+                      placeholder="77.2090"
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Geofence Radius (meters) *</Label>
+                  <Input
+                    type="number"
+                    value={formData.geofence_radius}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        geofence_radius: e.target.value,
+                      })
+                    }
+                    placeholder="50"
+                    required
+                    className="bg-gray-800 border-gray-700"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Students must be within this radius to mark attendance
+                  </p>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={resetForm}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-blue-600"
+                  >
+                    {editingRoom ? "Update Room" : "Create Room"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
+      )}
 
-        {/* Rooms Table */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-gray-800">
-                  <tr className="text-left">
-                    <th className="p-4 font-medium text-gray-400">
-                      Room Number
-                    </th>
-                    <th className="p-4 font-medium text-gray-400">Building</th>
-                    <th className="p-4 font-medium text-gray-400">Floor</th>
-                    <th className="p-4 font-medium text-gray-400">
-                      Scanner ID
-                    </th>
-                    <th className="p-4 font-medium text-gray-400">Location</th>
-                    <th className="p-4 font-medium text-gray-400">Geofence</th>
-                    <th className="p-4 font-medium text-gray-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRooms.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="p-8 text-center text-gray-400"
-                      >
-                        No rooms found. Click &quot;Add Room&quot; to create
-                        one.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRooms.map((room) => (
-                      <tr
-                        key={room._id}
-                        className="border-b border-gray-800 hover:bg-gray-800/50"
-                      >
-                        <td className="p-4 font-medium">{room.room_number}</td>
-                        <td className="p-4">{room.building}</td>
-                        <td className="p-4">{room.floor}</td>
-                        <td className="p-4">
-                          <code className="text-xs bg-gray-800 px-2 py-1 rounded">
-                            {room.scanner_id}
-                          </code>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-1 text-sm text-gray-400">
-                            <MapPin className="w-3 h-3" />
-                            {room.latitude.toFixed(4)},{" "}
-                            {room.longitude.toFixed(4)}
-                          </div>
-                        </td>
-                        <td className="p-4">{room.geofence_radius}m</td>
-                        <td className="p-4">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(room)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDelete(room)}
-                              className="text-red-400 hover:text-red-300"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats */}
-        <div className="mt-4 text-sm text-gray-400">
-          Showing {filteredRooms.length} of {rooms.length} rooms
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Input
+            placeholder="Search by room number, building, or scanner ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-900 border-gray-800"
+          />
         </div>
       </div>
-    </div>
+
+      {/* Rooms Table */}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-gray-800">
+                <tr className="text-left">
+                  <th className="p-4 font-medium text-gray-400">Room Number</th>
+                  <th className="p-4 font-medium text-gray-400">Building</th>
+                  <th className="p-4 font-medium text-gray-400">Floor</th>
+                  <th className="p-4 font-medium text-gray-400">Scanner ID</th>
+                  <th className="p-4 font-medium text-gray-400">Location</th>
+                  <th className="p-4 font-medium text-gray-400">Geofence</th>
+                  <th className="p-4 font-medium text-gray-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRooms.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="p-8 text-center text-gray-400"
+                    >
+                      No rooms found. Click &quot;Add Room&quot; to create one.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRooms.map((room) => (
+                    <tr
+                      key={room._id}
+                      className="border-b border-gray-800 hover:bg-gray-800/50"
+                    >
+                      <td className="p-4 font-medium">{room.room_number}</td>
+                      <td className="p-4">{room.building}</td>
+                      <td className="p-4">{room.floor}</td>
+                      <td className="p-4">
+                        <code className="text-xs bg-gray-800 px-2 py-1 rounded">
+                          {room.scanner_id}
+                        </code>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
+                          <MapPin className="w-3 h-3" />
+                          {room.latitude.toFixed(4)},{" "}
+                          {room.longitude.toFixed(4)}
+                        </div>
+                      </td>
+                      <td className="p-4">{room.geofence_radius}m</td>
+                      <td className="p-4">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(room)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(room)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <div className="mt-4 text-sm text-gray-400">
+        Showing {filteredRooms.length} of {rooms.length} rooms
+      </div>
+    </AdminLayout>
   );
 }

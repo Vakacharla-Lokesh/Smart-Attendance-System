@@ -51,6 +51,10 @@ const studentSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    is_admin: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

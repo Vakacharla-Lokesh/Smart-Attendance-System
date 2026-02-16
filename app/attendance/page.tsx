@@ -4,12 +4,13 @@
 // PAGE: Attendance Records Page - View, filter, and export attendance records
 // ROUTE: /attendance
 
-
 import { useState, useEffect } from "react";
 import { Calendar, Download, Filter, ArrowUp, ArrowDown } from "lucide-react";
 import { Punch, Student, Filters } from "@/types";
+import { useRouter } from "next/navigation";
 
 export default function AttendancePage() {
+  const router = useRouter(); // ADD THIS
   const [punches, setPunches] = useState<Punch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,10 +23,16 @@ export default function AttendancePage() {
     dateTo: "",
   });
 
+  // ADD AUTHENTICATION CHECK
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   const fetchData = async () => {
     try {

@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ClipboardList,
   Users,
@@ -8,8 +8,17 @@ import {
   Bell,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // ADD THIS
 
 export default function Page() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-gray-900 to-black text-white overflow-hidden">
       {/* Left Main Section */}

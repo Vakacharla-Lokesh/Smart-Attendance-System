@@ -1,7 +1,8 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { Bell, CalendarClock, FileDown, BookOpen } from "lucide-react";
 import {
   PieChart,
@@ -16,6 +17,16 @@ import {
 } from "recharts";
 
 export default function Page() {
+  const router = useRouter(); // ADD THIS
+
+  // ADD THIS AUTHENTICATION CHECK
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
+  
   const attendanceData = [
     { name: "Present", value: 21, color: "#9b5de5" },
     { name: "Absent", value: 4, color: "#ff6b6b" },

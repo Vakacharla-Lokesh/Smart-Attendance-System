@@ -84,7 +84,6 @@ const CourseSchema = new Schema<ICourse>(
 );
 
 // Indexes
-CourseSchema.index({ course_code: 1 }, { unique: true });
 CourseSchema.index({ department: 1 });
 CourseSchema.index({ year: 1, semester: 1 });
 

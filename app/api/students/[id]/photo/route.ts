@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
-import { uploadImageToS3 } from "@/lib/s3";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: studentId } = params;
+    const { id: studentId } = await params;
     
     const body = await request.json();
     const { image_base64 } = body;
@@ -31,12 +30,8 @@ export async function POST(
       );
     }
 
-    // Upload image to S3
-    const fileName = `${student.enroll_number}-${Date.now()}`;
-    const s3Url = await uploadImageToS3(image_base64, "profiles", fileName);
-
-    // Update student document
-    student.profile_photo = s3Url;
+    // Update student document to store base64 string directly
+    student.profile_photo = image_base64;
     await student.save();
 
     return NextResponse.json(

@@ -14,6 +14,9 @@ interface CameraCaptureProps {
   onClose: () => void;
   onCapture: (blob: Blob) => void;
   uploading?: boolean;
+  title?: string;
+  description?: string;
+  confirmText?: string;
 }
 
 const CameraCapture = ({
@@ -21,6 +24,9 @@ const CameraCapture = ({
   onClose,
   onCapture,
   uploading = false,
+  title = "Punch Out Photo",
+  description = "Please take a photo before punching out. This is required for attendance verification.",
+  confirmText = "Confirm & Punch Out",
 }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,11 +154,10 @@ const CameraCapture = ({
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <Camera className="h-5 w-5 text-red-500" />
-            Punch Out Photo
+            {title}
           </DialogTitle>
           <DialogDescription>
-            Please take a photo before punching out. This is required for
-            attendance verification.
+            {description}
           </DialogDescription>
         </DialogHeader>
 
@@ -255,7 +260,7 @@ const CameraCapture = ({
                   ) : (
                     <>
                       <Check className="h-4 w-4 mr-2" />
-                      Confirm & Punch Out
+                      {confirmText}
                     </>
                   )}
                 </Button>

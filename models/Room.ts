@@ -81,7 +81,6 @@ const RoomSchema = new Schema<IRoom>(
 
 // Create geospatial index for location queries
 RoomSchema.index({ latitude: "2d", longitude: "2d" });
-RoomSchema.index({ scanner_id: 1 }, { unique: true });
 
 const Room = models.Room || model<IRoom>("Room", RoomSchema);
 

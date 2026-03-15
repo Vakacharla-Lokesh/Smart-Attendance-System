@@ -88,7 +88,7 @@ export function isWithinClassTime(
 export async function getScheduledClassAtTime(
   room_id: string,
   queryTime: Date = new Date(),
-  punchType?: "in" | "out"
+  punchType?: "in" | "out",
 ): Promise<any> {
   try {
     await connectDB();
@@ -125,12 +125,24 @@ export async function getScheduledClassAtTime(
       const startMinutes = start.getHours() * 60 + start.getMinutes();
       const endMinutes = end.getHours() * 60 + end.getMinutes();
 
+      // if (punchType === "in") {
+      //   // Can punch in from 15 mins before to 5 mins after start
+      //   return currentMinutes >= (startMinutes - 15) && currentMinutes <= (startMinutes + 5);
+      // } else if (punchType === "out") {
+      //   // Can punch out from 15 mins before to 5 mins after end
+      //   return currentMinutes >= (endMinutes - 15) && currentMinutes <= (endMinutes + 5);
+      // }
+
       if (punchType === "in") {
-        // Can punch in from 15 mins before to 5 mins after start
-        return currentMinutes >= (startMinutes - 15) && currentMinutes <= (startMinutes + 5);
+        // Can punch in from 15 mins before start until the class ends
+        return (
+          currentMinutes >= startMinutes - 15 && currentMinutes <= endMinutes
+        );
       } else if (punchType === "out") {
-        // Can punch out from 15 mins before to 5 mins after end
-        return currentMinutes >= (endMinutes - 15) && currentMinutes <= (endMinutes + 5);
+        // Can punch out from 15 mins before end to 15 mins after end
+        return (
+          currentMinutes >= endMinutes - 15 && currentMinutes <= endMinutes + 15
+        );
       }
 
       // Default: anywhere within class bounding time
@@ -153,7 +165,7 @@ export async function verifyAttendanceEligibility(
   student_latitude: number,
   student_longitude: number,
   currentTime: Date = new Date(),
-  punchType: "in" | "out" = "in"
+  punchType: "in" | "out" = "in",
 ): Promise<{
   eligible: boolean;
   location_verified: boolean;
@@ -171,7 +183,11 @@ export async function verifyAttendanceEligibility(
     );
 
     // Check scheduled class and time
-    const scheduledClass = await getScheduledClassAtTime(room_id, currentTime, punchType);
+    const scheduledClass = await getScheduledClassAtTime(
+      room_id,
+      currentTime,
+      punchType,
+    );
 
     const isEligible = locationResult.isWithinGeofence && !!scheduledClass;
 

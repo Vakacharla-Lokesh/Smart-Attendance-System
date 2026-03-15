@@ -516,6 +516,11 @@ export default function StudentAnalyticsPage() {
               ← Back to Home
             </Button>
           </Link>
+          <Link href={`/student/${id}/profile`}>
+            <Button variant="default">
+              Edit Profile
+            </Button>
+          </Link>
         </div>
 
         {/* top grid */}

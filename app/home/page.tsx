@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,11 @@ export default function HomePage() {
   const [punchStatus, setPunchStatus] = useState<PunchStatus>("idle");
   const [punchMessage, setPunchMessage] = useState("");
   const [punchError, setPunchError] = useState("");
+
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -339,10 +344,69 @@ export default function HomePage() {
     }
   };
 
+  const openCamera = async () => {
+    setShowCamera(true);
+    setCapturedImage(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+      streamRef.current = stream;
+      // Wait a tick for the video element to mount
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 100);
+    } catch {
+      setPunchStatus("error");
+      setPunchError("Camera access denied. Please allow camera to punch out.");
+      setShowCamera(false);
+    }
+  };
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext("2d")!.drawImage(videoRef.current, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    setCapturedImage(dataUrl);
+    stopCamera();
+  };
+
+  const retakePhoto = async () => {
+    setCapturedImage(null);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+    });
+    streamRef.current = stream;
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    }, 100);
+  };
+
   // ─── Punch Out ──────────────────────────────────────────────────────────────
   // Available whenever lastPunchType === "in". No location needed.
 
-  const handlePunchOut = async () => {
+  const handlePunchOut = () => {
+    // Step 1: open camera modal — actual API call happens after photo is taken
+    openCamera();
+  };
+
+  const submitPunchOut = async (imageBase64: string) => {
+    setShowCamera(false);
+    stopCamera();
     setPunchStatus("loading");
     setPunchMessage("");
     setPunchError("");
@@ -360,7 +424,7 @@ export default function HomePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ punch_type: "out" }),
+        body: JSON.stringify({ punch_type: "out", image_base64: imageBase64 }),
       });
 
       const data = await res.json();
@@ -372,11 +436,14 @@ export default function HomePage() {
       }
 
       setPunchStatus("success");
-      setPunchMessage("✅ Punched out successfully! See you next time.");
+      setPunchMessage(
+        data.data?.attendance_marked
+          ? "✅ Punched out! Attendance marked for today."
+          : "✅ Punched out successfully.",
+      );
       setLastPunchType("out");
-
+      setCapturedImage(null);
       await loadStudentStats(token, user!.enroll_no);
-
       setTimeout(() => {
         setPunchStatus("idle");
         setPunchMessage("");
@@ -422,7 +489,9 @@ export default function HomePage() {
                 <h1 className="text-2xl font-bold text-foreground">
                   Admin Dashboard
                 </h1>
-                <p className="text-sm text-muted-foreground">Smart Attendance System</p>
+                <p className="text-sm text-muted-foreground">
+                  Smart Attendance System
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -490,7 +559,9 @@ export default function HomePage() {
                 <p className="text-3xl font-bold text-foreground mt-2">
                   {stats.currentlyInside}
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">Students on campus</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Students on campus
+                </p>
               </CardContent>
             </Card>
 
@@ -531,7 +602,9 @@ export default function HomePage() {
                     : 0}
                   %
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">Current presence</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Current presence
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -700,37 +773,65 @@ export default function HomePage() {
               <div className="mb-4 flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg text-purple-800 text-sm shadow-sm ring-1 ring-purple-100">
                 <BookOpen className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
                 <div className="flex-1 w-full">
-                  <p className="font-bold text-base text-purple-900 mb-1">Upcoming Class</p>
+                  <p className="font-bold text-base text-purple-900 mb-1">
+                    Upcoming Class
+                  </p>
                   <p className="text-sm font-medium mb-1 line-clamp-2">
-                    {pendingPunch.scheduled_class.course_code} • {pendingPunch.scheduled_class.course_name}
+                    {pendingPunch.scheduled_class.course_code} •{" "}
+                    {pendingPunch.scheduled_class.course_name}
                   </p>
                   <p className="text-xs text-purple-700 flex items-center gap-1.5 mb-3 bg-card text-card-foreground/50 w-fit px-2 py-1 rounded-md border border-purple-100">
                     <Clock className="w-3.5 h-3.5" />
-                    {new Date(pendingPunch.scheduled_class.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                    <span className="ml-1">{new Date(pendingPunch.scheduled_class.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    {new Date(
+                      pendingPunch.scheduled_class.start_time,
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    -
+                    <span className="ml-1">
+                      {new Date(
+                        pendingPunch.scheduled_class.end_time,
+                      ).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </p>
-                  
+
                   {/* Timer UI */}
                   {(() => {
-                    const limitTime = new Date(pendingPunch.scheduled_class!.start_time).getTime() + 5 * 60000;
+                    const limitTime =
+                      new Date(
+                        pendingPunch.scheduled_class!.start_time,
+                      ).getTime() +
+                      5 * 60000;
                     const diff = limitTime - currentTime.getTime();
-                    
+
                     if (diff <= 0) {
                       return (
                         <div className="p-2.5 rounded-lg bg-red-100 border border-red-200 text-red-700 flex items-center gap-2 mt-2">
                           <XCircle className="w-4 h-4" />
-                          <span className="font-semibold text-sm">Late (Punch-In Window Closed)</span>
+                          <span className="font-semibold text-sm">
+                            Late (Punch-In Window Closed)
+                          </span>
                         </div>
                       );
                     }
-                    
+
                     const mins = Math.floor(diff / 60000);
                     const secs = Math.floor((diff % 60000) / 1000);
                     const isClosingSoon = mins < 2;
                     return (
-                      <div className={`p-2.5 rounded-lg border flexitems-center gap-2 mt-2 w-full transition-colors ${isClosingSoon ? 'bg-orange-100 border-orange-200 text-orange-700' : 'bg-green-100 border-green-200 text-green-700'}`}>
-                        <Clock className={`w-4 h-4 ${isClosingSoon ? 'animate-pulse' : ''}`} />
-                         <span className="font-semibold text-sm">Time left to punch in: {mins}m {secs}s</span>
+                      <div
+                        className={`p-2.5 rounded-lg border flexitems-center gap-2 mt-2 w-full transition-colors ${isClosingSoon ? "bg-orange-100 border-orange-200 text-orange-700" : "bg-green-100 border-green-200 text-green-700"}`}
+                      >
+                        <Clock
+                          className={`w-4 h-4 ${isClosingSoon ? "animate-pulse" : ""}`}
+                        />
+                        <span className="font-semibold text-sm">
+                          Time left to punch in: {mins}m {secs}s
+                        </span>
                       </div>
                     );
                   })()}
@@ -743,7 +844,9 @@ export default function HomePage() {
               <div className="mb-4 flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
                 <Wifi className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium">NFC card detected, but no class scheduled!</p>
+                  <p className="font-medium">
+                    NFC card detected, but no class scheduled!
+                  </p>
                   <p className="text-xs text-blue-600 mt-0.5">
                     Scanner: {pendingPunch.scanner_id} &middot; Room:{" "}
                     {pendingPunch.room_id} &middot; Expires in{" "}
@@ -759,50 +862,79 @@ export default function HomePage() {
               <div className="mb-4 flex items-start gap-3 p-4 bg-sky-50 border border-sky-200 rounded-lg text-sky-800 text-sm shadow-sm ring-1 ring-sky-100">
                 <BookOpen className="w-5 h-5 mt-0.5 flex-shrink-0 text-sky-600" />
                 <div className="flex-1 w-full">
-                  <p className="font-bold text-base text-sky-900 mb-1">Ongoing Class</p>
+                  <p className="font-bold text-base text-sky-900 mb-1">
+                    Ongoing Class
+                  </p>
                   <p className="text-sm font-medium mb-1 line-clamp-2">
-                    {lastPunch.course_id?.course_code} • {lastPunch.course_id?.course_name}
+                    {lastPunch.course_id?.course_code} •{" "}
+                    {lastPunch.course_id?.course_name}
                   </p>
                   <p className="text-xs text-sky-700 flex items-center gap-1.5 mb-3 bg-card text-card-foreground/50 w-fit px-2 py-1 rounded-md border border-sky-100">
                     <Clock className="w-3.5 h-3.5" />
-                    {new Date(lastPunch.timetable_id.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                    <span className="ml-1">{new Date(lastPunch.timetable_id.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    {new Date(
+                      lastPunch.timetable_id.start_time,
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    -
+                    <span className="ml-1">
+                      {new Date(
+                        lastPunch.timetable_id.end_time,
+                      ).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </p>
-                  
+
                   {/* Timer UI for Punch Out */}
                   {(() => {
-                    const endTime = new Date(lastPunch.timetable_id.end_time).getTime();
+                    const endTime = new Date(
+                      lastPunch.timetable_id.end_time,
+                    ).getTime();
                     const maxPunchOutTime = endTime + 5 * 60000;
                     const minPunchOutTime = endTime - 15 * 60000;
                     const curr = currentTime.getTime();
-                    
+
                     if (curr > maxPunchOutTime) {
                       return (
-                         <div className="p-2.5 rounded-lg bg-red-100 border border-red-200 text-red-700 flex items-center gap-2 mt-2">
-                           <XCircle className="w-4 h-4" />
-                           <span className="font-semibold text-sm">Late (Punch-out Window Closed)</span>
-                         </div>
+                        <div className="p-2.5 rounded-lg bg-red-100 border border-red-200 text-red-700 flex items-center gap-2 mt-2">
+                          <XCircle className="w-4 h-4" />
+                          <span className="font-semibold text-sm">
+                            Late (Punch-out Window Closed)
+                          </span>
+                        </div>
                       );
                     } else if (curr < minPunchOutTime) {
-                       const diffStart = minPunchOutTime - curr;
-                       const minsS = Math.floor(diffStart / 60000);
-                       const secsS = Math.floor((diffStart % 60000) / 1000);
-                       return (
-                         <div className="p-2.5 rounded-lg bg-orange-100 border border-orange-200 text-orange-700 flex items-center gap-2 mt-2 w-full">
-                            <Clock className="w-4 h-4" />
-                            <span className="font-semibold text-sm">Class ongoing. Punch out opens in: {minsS}m {secsS}s.</span>
-                         </div>
-                       );
+                      const diffStart = minPunchOutTime - curr;
+                      const minsS = Math.floor(diffStart / 60000);
+                      const secsS = Math.floor((diffStart % 60000) / 1000);
+                      return (
+                        <div className="p-2.5 rounded-lg bg-orange-100 border border-orange-200 text-orange-700 flex items-center gap-2 mt-2 w-full">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-semibold text-sm">
+                            Class ongoing. Punch out opens in: {minsS}m {secsS}
+                            s.
+                          </span>
+                        </div>
+                      );
                     }
-                    
+
                     const diff = maxPunchOutTime - curr;
                     const mins = Math.floor(diff / 60000);
                     const secs = Math.floor((diff % 60000) / 1000);
                     const isClosingSoon = mins < 2;
                     return (
-                      <div className={`p-2.5 rounded-lg border flex items-center gap-2 mt-2 w-full transition-colors ${isClosingSoon ? 'bg-orange-100 border-orange-200 text-orange-700' : 'bg-green-100 border-green-200 text-green-700'}`}>
-                        <CheckCircle className={`w-4 h-4 ${isClosingSoon ? 'animate-pulse' : ''}`} />
-                        <span className="font-semibold text-sm">Time left to punch out: {mins}m {secs}s</span>
+                      <div
+                        className={`p-2.5 rounded-lg border flex items-center gap-2 mt-2 w-full transition-colors ${isClosingSoon ? "bg-orange-100 border-orange-200 text-orange-700" : "bg-green-100 border-green-200 text-green-700"}`}
+                      >
+                        <CheckCircle
+                          className={`w-4 h-4 ${isClosingSoon ? "animate-pulse" : ""}`}
+                        />
+                        <span className="font-semibold text-sm">
+                          Time left to punch out: {mins}m {secs}s
+                        </span>
                       </div>
                     );
                   })()}
@@ -943,7 +1075,9 @@ export default function HomePage() {
                 <p className="text-3xl font-bold text-foreground mt-2">
                   {studentStats.absent_days}
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">Days missed</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Days missed
+                </p>
               </CardContent>
             </Card>
 
@@ -954,7 +1088,9 @@ export default function HomePage() {
                     <BarChart3 className="w-6 h-6 text-purple-600" />
                   </div>
                 </div>
-                <h3 className="text-muted-foreground text-sm font-medium">Status</h3>
+                <h3 className="text-muted-foreground text-sm font-medium">
+                  Status
+                </h3>
                 <p className="text-3xl font-bold text-foreground mt-2">
                   {studentStats.attendance_percentage >= 75 ? "✓" : "!"}
                 </p>
@@ -1016,21 +1152,25 @@ export default function HomePage() {
             </Card>
           </Link>
 
-          <Card className="border border-border opacity-60">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Settings className="w-6 h-6 text-muted-foreground" />
+          <Link href={`/student/${user?.enroll_no}/profile`}>
+            <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Settings className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      Profile Settings
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Manage your settings
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-muted-foreground">
-                    Profile Settings
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Coming soon</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         <Card className="mt-8 border-l-4 border-l-blue-600">
@@ -1047,6 +1187,76 @@ export default function HomePage() {
             </p>
           </CardContent>
         </Card>
+        {/* ── CAMERA MODAL ───────────────────────────────────────────────────── */}
+        {showCamera && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-semibold text-foreground">
+                  Take a Photo to Punch Out
+                </h3>
+                <button
+                  onClick={() => {
+                    stopCamera();
+                    setShowCamera(false);
+                    setCapturedImage(null);
+                  }}
+                  className="text-muted-foreground hover:text-foreground text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-4 flex flex-col items-center gap-4">
+                {!capturedImage ? (
+                  <>
+                    <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                      <video
+                        ref={videoRef}
+                        className="w-full h-full object-cover"
+                        playsInline
+                        muted
+                      />
+                    </div>
+                    <button
+                      onClick={capturePhoto}
+                      className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base transition-all shadow-md"
+                    >
+                      📸 Capture Photo
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                      <img
+                        src={capturedImage}
+                        className="w-full h-full object-cover"
+                        alt="Captured"
+                      />
+                    </div>
+                    <div className="flex gap-3 w-full">
+                      <button
+                        onClick={retakePhoto}
+                        className="flex-1 py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
+                      >
+                        Retake
+                      </button>
+                      <button
+                        onClick={() => submitPunchOut(capturedImage)}
+                        disabled={punchStatus === "loading"}
+                        className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-60"
+                      >
+                        {punchStatus === "loading"
+                          ? "Submitting…"
+                          : "Confirm & Punch Out"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

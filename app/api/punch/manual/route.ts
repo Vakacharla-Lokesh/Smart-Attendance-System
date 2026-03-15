@@ -21,7 +21,6 @@ import AttendanceRecord from "@/models/AttendanceRecord";
 import { getPunchFromQueue, removePunchFromQueue } from "@/lib/redis";
 import { verifyAttendanceEligibility } from "@/lib/location-utils";
 import MatchFaces from "@/lib/imageMatecher";
-import { uploadImageToS3 } from "@/lib/s3";
 
 export async function POST(request: NextRequest) {
   // Step 1: Authenticate the student via JWT
@@ -241,41 +240,26 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify time window
-      const currentTimeObj = new Date();
-      const currentMinutes = currentTimeObj.getHours() * 60 + currentTimeObj.getMinutes();
-      const end = new Date(scheduledClass.end_time);
-      const endMinutes = end.getHours() * 60 + end.getMinutes();
+      // const currentTimeObj = new Date();
+      // const currentMinutes = currentTimeObj.getHours() * 60 + currentTimeObj.getMinutes();
+      // const end = new Date(scheduledClass.end_time);
+      // const endMinutes = end.getHours() * 60 + end.getMinutes();
 
-      if (currentMinutes < (endMinutes - 15) || currentMinutes > (endMinutes + 5)) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "You can only punch out between 15 minutes before and 5 minutes after class ends.",
-            details: {
-              class_end_time: end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          },
-          { status: 403 },
-        );
-      }
+      // if (currentMinutes < (endMinutes - 15) || currentMinutes > (endMinutes + 5)) {
+      //   return NextResponse.json(
+      //     {
+      //       success: false,
+      //       error: "You can only punch out between 15 minutes before and 5 minutes after class ends.",
+      //       details: {
+      //         class_end_time: end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      //       }
+      //     },
+      //     { status: 403 },
+      //   );
+      // }
 
-      // Step 7: Upload the punch photo to S3
-      const photoName = `${student.enroll_number}-punch-out-${Date.now()}`;
-      let punchPhotoUrl = "";
-      try {
-        punchPhotoUrl = await uploadImageToS3(image_base64, "punches", photoName);
-      } catch (err: any) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Failed to upload punch photo.",
-          },
-          { status: 500 },
-        );
-      }
-
-      // Step 8: Match Faces
-      const matchResult = await MatchFaces(student.profile_photo, punchPhotoUrl);
+      // Step 7: Match Faces directly with the provided base64 string
+      const matchResult = await MatchFaces(student.profile_photo, image_base64);
       
       if (!matchResult.status) {
          return NextResponse.json(
@@ -288,7 +272,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Step 9: Write punch-out to MongoDB
+      // Step 8: Write punch-out to MongoDB using the base64 image
       const punch = await Punch.create({
         student_id: student._id,
         scanner_id: "MANUAL_APP",
@@ -296,7 +280,7 @@ export async function POST(request: NextRequest) {
         punch_time: new Date(),
         location: "",
         verified: true,
-        punch_photo: punchPhotoUrl,
+        punch_photo: image_base64,
         timetable_id: punchInToday.timetable_id,
         course_id: punchInToday.course_id,
       });

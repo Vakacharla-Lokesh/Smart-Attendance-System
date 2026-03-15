@@ -1,87 +1,108 @@
-// FILE: app/api/scan/route.js
-// API Route: POST /api/scan - RFID scan endpoint (auto punch in/out)
+// FILE: app/api/scan/route.ts
+// API Route: POST /api/scan
+// IoT device endpoint — receives card scan, stores in Redis queue for student to confirm via app.
+// Does NOT write to MongoDB directly. Student must punch-in from the app to complete the flow.
 
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
-import Punch from "@/models/Punch";
+import { addPunchToQueue, getPunchFromQueue } from "@/lib/redis";
+import mongoose from "mongoose";
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
-
     const body = await request.json();
-    const { rfid_tag, scanner_id, location } = body;
+    const { card_number, scanner_id, room_id } = body;
 
-    if (!rfid_tag || !scanner_id) {
+    // Validate required fields from IoT device
+    if (!card_number || !scanner_id || !room_id) {
       return NextResponse.json(
         {
           success: false,
-          error: "RFID tag and scanner ID are required",
+          error: "card_number, scanner_id, and room_id are required",
         },
         { status: 400 },
       );
     }
 
-    // Find student by RFID tag
-    const student = await Student.findOne({ rfid_tag, is_active: true });
+    await dbConnect();
+
+    interface IStudentLean {
+      _id: mongoose.Types.ObjectId;
+      enroll_number: string;
+      name: string;
+      course?: string;
+      year?: number;
+      section?: string;
+    }
+
+    // Look up student by card_number
+    const student = await Student.findOne({ card_number, is_active: true })
+      .select("_id enroll_number name course year section")
+      .lean<IStudentLean>();
 
     if (!student) {
       return NextResponse.json(
         {
           success: false,
           error: "Student not found or inactive",
-          rfid_tag,
+          card_number,
         },
         { status: 404 },
       );
     }
 
-    // Get last punch for this student
-    const lastPunch = await Punch.findOne({
-      student_id: student._id,
-    }).sort({ punch_time: -1 });
+    const enroll_number = student.enroll_number;
 
-    // Determine punch type (in/out)
-    let punchType = "in";
-    if (lastPunch && lastPunch.punch_type === "in") {
-      punchType = "out";
+    // Check if there is already a pending scan in Redis for this student
+    // If yes, the previous scan is still waiting — overwrite it with the latest scan
+    const existing = await getPunchFromQueue(enroll_number);
+    if (existing) {
+      console.warn(
+        `[Scan] Overwriting existing Redis entry for ${enroll_number} (previous scan not yet confirmed)`,
+      );
     }
 
-    // Create new punch
-    const punch = await Punch.create({
-      student_id: student._id,
+    // Push scan event to Redis queue with TTL (10 min, configured in redis.ts)
+    const entry = await addPunchToQueue({
+      enroll_number,
+      card_number,
+      room_id,
       scanner_id,
-      punch_type: punchType,
-      punch_time: new Date(),
-      location: location || "",
-      verified: true,
+      timestamp: Date.now(),
     });
+
+    if (!entry) {
+      // Redis is unavailable — fail loudly so the IoT device knows
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Queue unavailable. Please try again.",
+        },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json(
       {
         success: true,
+        message: "Scan queued. Student must confirm via app within 10 minutes.",
         data: {
-          punch,
-          student: {
-            _id: student._id,
-            enroll_number: student.enroll_number,
-            name: student.name,
-            course: student.course,
-            year: student.year,
-            section: student.section,
-          },
-          punch_type: punchType,
+          enroll_number,
+          student_name: student.name,
+          room_id,
+          scanner_id,
+          queued_at: new Date(entry.timestamp).toISOString(),
         },
       },
-      { status: 201 },
+      { status: 200 },
     );
   } catch (error) {
-    console.error("Error processing RFID scan:", error);
+    console.error("[Scan] Error processing IoT scan:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to process RFID scan",
+        error: "Failed to process scan",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },

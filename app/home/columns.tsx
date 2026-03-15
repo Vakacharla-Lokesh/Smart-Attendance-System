@@ -86,7 +86,7 @@ export const createColumns = (
             className={`px-3 py-1 text-xs rounded-md font-semibold ${
               inactive
                 ? "bg-gray-700 text-gray-400"
-                : "bg-yellow-500 hover:bg-yellow-600 text-black"
+                : "bg-yellow-500 hover:bg-yellow-600 text-foreground"
             }`}
           >
             Leave

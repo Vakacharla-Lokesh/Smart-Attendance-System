@@ -78,8 +78,14 @@ export default function TimetableManagement() {
     "Wednesday",
     "Thursday",
     "Friday",
-    "Saturday",
-    "Sunday",
+  ];
+
+  const timeSlots = [
+    { label: "09:00 AM - 10:00 AM", start: "09:00", end: "10:00" },
+    { label: "10:00 AM - 11:00 AM", start: "10:00", end: "11:00" },
+    { label: "11:00 AM - 12:00 AM", start: "11:00", end: "12:00" },
+    { label: "12:00 PM - 01:00 PM", start: "12:00", end: "13:00" },
+    { label: "01:00 PM - 02:00 PM", start: "13:00", end: "14:00" },
   ];
 
   useEffect(() => {
@@ -253,6 +259,18 @@ export default function TimetableManagement() {
     setShowForm(false);
   };
 
+  const handleAddForSlot = (day: string, start: string, end: string) => {
+    setFormData({
+      room_id: "",
+      course_id: "",
+      day: day,
+      start_time: start,
+      end_time: end,
+    });
+    setEditingTimetable(null);
+    setShowForm(true);
+  };
+
   const filteredTimetables =
     filterDay === "all"
       ? timetables
@@ -408,34 +426,33 @@ export default function TimetableManagement() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Start Time *</Label>
-                    <Input
-                      type="time"
-                      value={formData.start_time}
-                      onChange={(e) =>
+                <div>
+                  <Label>Time Slot *</Label>
+                  <Select
+                    value={formData.start_time}
+                    onValueChange={(val) => {
+                      const slot = timeSlots.find((s) => s.start === val);
+                      if (slot) {
                         setFormData({
                           ...formData,
-                          start_time: e.target.value,
-                        })
+                          start_time: slot.start,
+                          end_time: slot.end,
+                        });
                       }
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <Label>End Time *</Label>
-                    <Input
-                      type="time"
-                      value={formData.end_time}
-                      onChange={(e) =>
-                        setFormData({ ...formData, end_time: e.target.value })
-                      }
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
+                    }}
+                    required
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700">
+                      <SelectValue placeholder="Select a time slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot.start} value={slot.start}>
+                          {slot.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex gap-2 justify-end">
@@ -483,105 +500,96 @@ export default function TimetableManagement() {
         </Select>
       </div>
 
-      {/* Timetables by Day */}
-      {days.map((day) => {
-        const dayTimetables = filteredTimetables.filter((t) => t.day === day);
+      {/* Timetables Grid */}
+      <Card className="bg-gray-900 border-gray-800 mb-4 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr>
+                <th className="p-4 border-b border-gray-800 bg-gray-950 font-semibold text-gray-300 w-32 sticky left-0 z-10">
+                  Time
+                </th>
+                {days.map((day) => {
+                  if (filterDay !== "all" && filterDay !== day) return null;
+                  return (
+                    <th key={day} className="p-4 border-b border-gray-800 bg-gray-950 font-semibold text-gray-300 min-w-[200px] text-center">
+                      {day}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {timeSlots.map((slot) => (
+                <tr key={slot.start} className="group">
+                  <td className="p-4 border-b border-gray-800 bg-gray-950/50 text-gray-400 text-sm font-medium sticky left-0 z-10">
+                    {slot.start} - {slot.end}
+                  </td>
+                  {days.map((day) => {
+                    if (filterDay !== "all" && filterDay !== day) return null;
 
-        if (filterDay !== "all" && filterDay !== day) return null;
-        if (dayTimetables.length === 0 && filterDay !== "all") return null;
+                    // Find if there is a class on this day at this time slot
+                    const classInSlot = filteredTimetables.find((t) => {
+                      const tStart = new Date(t.start_time).toTimeString().slice(0, 5);
+                      return t.day === day && tStart === slot.start;
+                    });
 
-        return (
-          <Card
-            key={day}
-            className="bg-gray-900 border-gray-800 mb-4"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                {day}
-                <span className="text-sm font-normal text-gray-400">
-                  ({dayTimetables.length} classes)
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {dayTimetables.length === 0 ? (
-                <p className="text-gray-400 text-center py-4">
-                  No classes scheduled for {day}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {dayTimetables
-                    .sort(
-                      (a, b) =>
-                        new Date(a.start_time).getTime() -
-                        new Date(b.start_time).getTime(),
-                    )
-                    .map((timetable) => {
-                      const startTime = new Date(
-                        timetable.start_time,
-                      ).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
-                      const endTime = new Date(
-                        timetable.end_time,
-                      ).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
-
-                      return (
-                        <div
-                          key={timetable._id}
-                          className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-purple-400">
-                              <Clock className="w-4 h-4" />
-                              <span className="font-mono text-sm">
-                                {startTime} - {endTime}
-                              </span>
-                            </div>
+                    return (
+                      <td key={`${day}-${slot.start}`} className="p-2 border-b border-l border-gray-800 relative min-h-[100px] align-top">
+                        {classInSlot ? (
+                          <div className="bg-purple-900/40 border border-purple-800/60 rounded-lg p-3 h-full flex flex-col justify-between group/card hover:bg-purple-900/60 transition-colors">
                             <div>
-                              <div className="font-semibold">
-                                {timetable.course_id.course_code} -{" "}
-                                {timetable.course_id.course_name}
+                              <div className="font-bold text-purple-200 text-sm mb-1 leading-tight">
+                                {classInSlot.course_id.course_code}
                               </div>
-                              <div className="text-sm text-gray-400">
-                                Room: {timetable.room_id.room_number} (
-                                {timetable.room_id.building})
-                                {timetable.course_id.instructor_name &&
-                                  ` • ${timetable.course_id.instructor_name}`}
+                              <div className="text-xs text-gray-300 font-medium mb-2 line-clamp-2">
+                                {classInSlot.course_id.course_name}
+                              </div>
+                              <div className="text-xs text-purple-300/80 bg-purple-950/50 inline-block px-1.5 py-0.5 rounded">
+                                {classInSlot.room_id.room_number}
                               </div>
                             </div>
+                            
+                            <div className="flex gap-1 justify-end mt-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-gray-400 hover:text-white hover:bg-gray-800"
+                                onClick={() => handleEdit(classInSlot)}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleDelete(classInSlot)}
+                                className="h-6 w-6 text-red-500 hover:text-red-400 hover:bg-red-950/50"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
+                        ) : (
+                          <div className="h-full min-h-[90px] w-full flex items-center justify-center p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
+                              variant="outline"
                               size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(timetable)}
+                              className="border-dashed border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-500 bg-transparent w-full h-full"
+                              onClick={() => handleAddForSlot(day, slot.start, slot.end)}
                             >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDelete(timetable)}
-                              className="text-red-400 hover:text-red-300"
-                            >
-                              <Trash2 className="w-4 h-4" />
+                              <Plus className="w-4 h-4 mr-1" /> Add
                             </Button>
                           </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Stats */}
       <div className="mt-4 text-sm text-gray-400">

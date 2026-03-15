@@ -5,8 +5,9 @@ import connectDB from "@/lib/mongodb";
 import UserData from "@/models/UserData";
 import { formatUserResponse, validateRequiredFields } from "@/lib/db-utils";
 import Student from "@/models/Student";
+import Admin from "@/models/Admin";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+import { JWT_SECRET } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,14 +53,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ADDED: Check if user is admin
-    const student = await Student.findOne({
+    let isAdmin = false;
+    
+    // Check if in Admin collection
+    const adminRecord = await Admin.findOne({
       enroll_number: user.enroll_no,
-    })
-      .select("is_admin")
-      .lean()
-      .exec();
+    }).lean().exec();
 
-    const isAdmin = student && typeof student === "object" && "is_admin" in student ? student.is_admin : false;
+    if (adminRecord) {
+      isAdmin = true;
+    } else {
+      const student = await Student.findOne({
+        enroll_number: user.enroll_no,
+      })
+        .select("is_admin")
+        .lean()
+        .exec();
+
+      isAdmin = student?.is_admin || false;
+    }
 
     // Generate JWT token WITH is_admin field
     const token = jwt.sign(
@@ -77,7 +89,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: "Login successful",
       token,
-      user: formatUserResponse(user),
+      user: {
+        ...formatUserResponse(user),
+        is_admin: isAdmin,
+      },
     });
   } catch (error) {
     console.error("Login error:", error);

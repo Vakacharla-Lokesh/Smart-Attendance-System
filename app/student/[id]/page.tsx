@@ -29,6 +29,10 @@ interface StudentData {
   institute?: string;
   personal_email?: string;
   amity_email?: string;
+  email?: string;
+  course?: string;
+  section?: string;
+  enrolled_courses?: { course_name: string; course_code: string }[];
 }
 
 interface AttendanceData {
@@ -277,7 +281,7 @@ export default function StudentAnalyticsPage() {
       stats.sort((a, b) => b.month.localeCompare(a.month));
       return stats;
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -289,7 +293,7 @@ export default function StudentAnalyticsPage() {
         const sRes = await fetch(`/api/students/${id}`);
         if (sRes.ok) {
           const s = await sRes.json();
-          setStudent(s);
+          setStudent(s.data || s);
         } else {
           setStudent(null);
         }
@@ -349,7 +353,7 @@ export default function StudentAnalyticsPage() {
     const daysInMonth = new Date(year, month, 0).getDate();
     const firstDay = new Date(year, month - 1, 1).getDay(); // 0..6
     const cells: (string | null)[] = Array.from({ length: firstDay }).map(
-      () => null
+      () => null,
     );
     for (let d = 1; d <= daysInMonth; d++) cells.push(String(d));
     // split into weeks
@@ -362,26 +366,26 @@ export default function StudentAnalyticsPage() {
         const dt = new Date(s);
         return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(dt.getDate()).padStart(2, "0")}`;
-      })
+      }),
     );
     const odSet = new Set(
       (attendance?.od_dates || []).map((s) => {
         const dt = new Date(s);
         return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(dt.getDate()).padStart(2, "0")}`;
-      })
+      }),
     );
 
     return (
       <div className="mt-3">
         <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground">
-          {["S", "M", "T", "W", "T", "F", "S"].map((d) => (
+          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
             <div
-              key={d}
+              key={`weekday-${i}`}
               className="text-center"
             >
               {d}
@@ -404,13 +408,13 @@ export default function StudentAnalyticsPage() {
                     />
                   );
                 const iso = `${year}-${String(month).padStart(2, "0")}-${String(
-                  day
+                  day,
                 ).padStart(2, "0")}`;
                 const isPresent = presentSet.has(iso);
                 const isOd = odSet.has(iso);
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const isWeekend = [0, 6].includes(
-                  new Date(year, month - 1, Number(day)).getDay()
+                  new Date(year, month - 1, Number(day)).getDay(),
                 );
                 return (
                   <div
@@ -421,8 +425,8 @@ export default function StudentAnalyticsPage() {
                       backgroundColor: isPresent
                         ? "rgba(16,185,129,0.06)"
                         : isOd
-                        ? "rgba(245,158,11,0.05)"
-                        : "transparent",
+                          ? "rgba(245,158,11,0.05)"
+                          : "transparent",
                       color: "var(--muted-foreground)",
                     }}
                   >
@@ -512,17 +516,6 @@ export default function StudentAnalyticsPage() {
               ← Back to Home
             </Button>
           </Link>
-          <div className="flex gap-2 items-center">
-            <Button
-              className="!bg-transparent !border !border-border"
-              variant="ghost"
-            >
-              Export
-            </Button>
-            <Button className="!bg-primary !text-primary-foreground">
-              Mark Attendance
-            </Button>
-          </div>
         </div>
 
         {/* top grid */}
@@ -565,8 +558,9 @@ export default function StudentAnalyticsPage() {
                         {student?.name || "N/A"}
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {student?.program ?? "B.Tech"} •{" "}
-                        {student?.branch ?? "CS"} • Year {student?.year ?? "2"}
+                        {student?.course ?? "B.Tech"} • Section{" "}
+                        {student?.section ?? "A"} • Year{" "}
+                        {student?.year ?? "N/A"}
                       </p>
                     </div>
                     <div className="text-sm text-muted-foreground text-right">
@@ -644,10 +638,13 @@ export default function StudentAnalyticsPage() {
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Personal Email
+                          Email
                         </div>
-                        <div className="font-semibold text-sm">
-                          {student?.personal_email ?? "student@example.com"}
+                        <div
+                          className="font-semibold text-sm truncate max-w-[150px]"
+                          title={student?.email ?? "student@example.com"}
+                        >
+                          {student?.email ?? "student@example.com"}
                         </div>
                       </div>
                     </div>
@@ -666,8 +663,17 @@ export default function StudentAnalyticsPage() {
                         <div className="text-xs text-muted-foreground">
                           Amity Email
                         </div>
-                        <div className="font-semibold text-sm">
-                          {student?.amity_email ?? "student@amity.edu"}
+                        <div
+                          className="font-semibold text-sm truncate max-w-[150px]"
+                          title={
+                            student?.amity_email ??
+                            student?.email ??
+                            "student@amity.edu"
+                          }
+                        >
+                          {student?.amity_email ??
+                            student?.email ??
+                            "student@amity.edu"}
                         </div>
                       </div>
                     </div>
@@ -694,15 +700,31 @@ export default function StudentAnalyticsPage() {
                   </div>
                   <div className="mt-8">
                     <h3 className="text-xl font-semibold text-primary mb-3">
-                      7th Semester Subjects
+                      Subjects & Enrolled Courses
                     </h3>
                     <ul className="list-disc list-inside space-y-1 text-foreground">
-                      <li>IoT System Design and Hardware</li>
-                      <li>Blockchain Technologies</li>
-                      <li>Applied Cryptography</li>
-                      <li>Cybersecurity</li>
-                      <li>SKE (Professional Programming Skills)</li>
-                      <li>French</li>
+                      {student?.enrolled_courses &&
+                      student.enrolled_courses.length > 0 ? (
+                        student.enrolled_courses.map((c, i) => (
+                          <li key={i}>
+                            {c.course_name}{" "}
+                            <span className="text-muted-foreground text-xs">
+                              ({c.course_code})
+                            </span>
+                          </li>
+                        ))
+                      ) : (
+                        <>
+                          <li>
+                            {student?.course
+                              ? `${student.course} Core`
+                              : "General Core Syllabus"}
+                          </li>
+                          <li className="text-muted-foreground text-sm list-none mt-2 italic">
+                            More courses will appear once assigned by admins.
+                          </li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 </div>
@@ -793,7 +815,7 @@ export default function StudentAnalyticsPage() {
                     >
                       <h4 className="font-semibold text-lg">
                         {getMonthName(
-                          selectedMonth || monthlyStats[0]?.month || ""
+                          selectedMonth || monthlyStats[0]?.month || "",
                         )}
                       </h4>
                       <div className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -824,7 +846,7 @@ export default function StudentAnalyticsPage() {
                                 <span className="font-semibold text-red-400">
                                   {Math.max(
                                     s.totalWeekdays - s.presentDays - s.odDays,
-                                    0
+                                    0,
                                   )}
                                 </span>
                               </div>
@@ -893,8 +915,8 @@ export default function StudentAnalyticsPage() {
                                 stat.percentage >= 75
                                   ? "text-green-400"
                                   : stat.percentage >= 50
-                                  ? "text-yellow-400"
-                                  : "text-red-400"
+                                    ? "text-yellow-400"
+                                    : "text-red-400"
                               } font-semibold`}
                             >
                               {stat.percentage}%

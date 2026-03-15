@@ -30,6 +30,18 @@ const punchSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    punch_photo: {
+      type: String,
+      trim: true,
+    },
+    timetable_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TimeTable",
+    },
+    course_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+    },
   },
   {
     timestamps: true,

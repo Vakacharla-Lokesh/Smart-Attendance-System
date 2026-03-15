@@ -1,9 +1,23 @@
 import { Redis } from "@upstash/redis";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || "",
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-});
+// Validate environment variables before creating client
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || "";
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+
+const isRedisConfigured =
+  REDIS_URL.startsWith("https://") && REDIS_TOKEN.length > 10;
+
+// Create Redis client — only used if configured
+const redis = isRedisConfigured
+  ? new Redis({ url: REDIS_URL, token: REDIS_TOKEN })
+  : null;
+
+if (!isRedisConfigured) {
+  console.warn(
+    "[Redis] UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is missing or invalid. " +
+      "Real-time NFC punch queue will be disabled. Set these values in .env.local to enable it.",
+  );
+}
 
 export interface PunchQueueEntry {
   enroll_number: string;
@@ -18,54 +32,59 @@ const QUEUE_PREFIX = "punch_queue:";
 
 /**
  * Add a punch request to the Redis queue
- * Returns the queue entry that was added
+ * Returns the queue entry that was added, or null if Redis is unavailable
  */
 export async function addPunchToQueue(
   entry: PunchQueueEntry,
-): Promise<PunchQueueEntry> {
+): Promise<PunchQueueEntry | null> {
+  if (!redis) {
+    console.warn("[Redis] addPunchToQueue: Redis not configured, skipping.");
+    return null;
+  }
   try {
     const key = `${QUEUE_PREFIX}${entry.enroll_number}`;
     await redis.setex(key, QUEUE_TTL, JSON.stringify(entry));
-    // console.log(
-    //   `Added punch to queue for ${entry.enroll_number}, TTL: ${QUEUE_TTL}s`,
-    // );
     return entry;
   } catch (error) {
-    console.error("Error adding punch to queue:", error);
-    throw error;
+    // Log a concise message — no full stack trace for network errors
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[Redis] addPunchToQueue failed: ${msg}`);
+    return null;
   }
 }
 
 /**
  * Get a pending punch request from the queue for a student
- * Returns the entry if found, null if not found or expired
+ * Returns the entry if found, null if not found, expired, or Redis unavailable
  */
 export async function getPunchFromQueue(
   enroll_number: string,
 ): Promise<PunchQueueEntry | null> {
+  if (!redis) return null;
+
   try {
     const key = `${QUEUE_PREFIX}${enroll_number}`;
     const data = await redis.get(key);
 
-    if (!data) {
-      return null;
-    }
+    if (!data) return null;
 
-    const entry = JSON.parse(data as string) as PunchQueueEntry;
+    const entry = (
+      typeof data === "string" ? JSON.parse(data) : data
+    ) as PunchQueueEntry;
 
-    // Check if entry is stale (older than 10 minutes)
+    // Check if the entry is stale (older than 10 minutes)
     const now = Date.now();
-    const entryAge = (now - entry.timestamp) / 1000; // in seconds
+    const entryAge = (now - entry.timestamp) / 1000;
 
     if (entryAge > QUEUE_TTL) {
-      // Entry is stale, remove it
       await removePunchFromQueue(enroll_number);
       return null;
     }
 
     return entry;
   } catch (error) {
-    console.error("Error getting punch from queue:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[Redis] getPunchFromQueue failed: ${msg}`);
     return null;
   }
 }
@@ -76,30 +95,34 @@ export async function getPunchFromQueue(
 export async function removePunchFromQueue(
   enroll_number: string,
 ): Promise<boolean> {
+  if (!redis) return false;
+
   try {
     const key = `${QUEUE_PREFIX}${enroll_number}`;
     const result = await redis.del(key);
-    // console.log(`Removed punch from queue for ${enroll_number}`);
     return result > 0;
   } catch (error) {
-    console.error("Error removing punch from queue:", error);
-    throw error;
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[Redis] removePunchFromQueue failed: ${msg}`);
+    return false;
   }
 }
 
 /**
  * Get all pending punch requests (for admin dashboard)
+ * Note: requires SCAN on Upstash — not recommended for large datasets
  */
 export async function getAllPendingPunches(): Promise<PunchQueueEntry[]> {
+  if (!redis) return [];
+
   try {
-    // Note: This requires more sophisticated scanning on Upstash
-    // For now, we'll return empty and suggest using MongoDB for bulk operations
     console.warn(
-      "getAllPendingPunches: Not recommended for large datasets on Upstash free tier",
+      "[Redis] getAllPendingPunches: Not recommended for large datasets on Upstash free tier",
     );
     return [];
   } catch (error) {
-    console.error("Error getting all pending punches:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[Redis] getAllPendingPunches failed: ${msg}`);
     return [];
   }
 }

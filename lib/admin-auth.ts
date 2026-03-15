@@ -12,10 +12,10 @@ export interface AdminRequest extends NextRequest {
 
 /**
  * Middleware to check if user is an admin
- * Add is_admin field to Student model to designate admins
+ * Checks the is_admin flag in the JWT token, then cross-checks with Student record
  */
 export async function requireAdmin(
-  request: AdminRequest,
+  request: NextRequest,
 ): Promise<NextResponse | null> {
   try {
     const authHeader = request.headers.get("authorization");
@@ -30,7 +30,12 @@ export async function requireAdmin(
     const token = authHeader.split(" ")[1];
     const decoded = verifyToken(token);
 
-    // Get user from database to check admin status
+    // Fast-path: check is_admin from JWT payload
+    if (decoded.is_admin) {
+      return null; // Token says admin — allow
+    }
+
+    // Fallback: verify against database
     await connectDB();
     const user = await Student.findOne({
       enroll_number: decoded.enroll_no,
@@ -51,12 +56,6 @@ export async function requireAdmin(
       );
     }
 
-    // Attach user info to request
-    request.user = {
-      ...decoded,
-      is_admin: true,
-    };
-
     return null; // No error, user is authenticated admin
   } catch (error) {
     console.error("Admin authentication error:", error);
@@ -71,9 +70,9 @@ export async function requireAdmin(
  * Helper function to wrap admin route handlers
  */
 export function withAdmin(
-  handler: (request: AdminRequest) => Promise<NextResponse>,
+  handler: (request: NextRequest) => Promise<NextResponse>,
 ) {
-  return async (request: AdminRequest) => {
+  return async (request: NextRequest) => {
     const authError = await requireAdmin(request);
     if (authError) return authError;
     return handler(request);

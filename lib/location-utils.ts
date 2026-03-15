@@ -2,6 +2,7 @@
 import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 import TimeTable from "@/models/TimeTable";
+import "@/models/Course";
 
 interface CoordinateDistance {
   distance: number; // in meters
@@ -87,11 +88,11 @@ export function isWithinClassTime(
 export async function getScheduledClassAtTime(
   room_id: string,
   queryTime: Date = new Date(),
+  punchType?: "in" | "out"
 ): Promise<any> {
   try {
     await connectDB();
 
-    // Get day of week
     const days = [
       "Sunday",
       "Monday",
@@ -101,19 +102,42 @@ export async function getScheduledClassAtTime(
       "Friday",
       "Saturday",
     ];
+
+    // Use LOCAL time for day name — matches how seed stores it
     const currentDay = days[queryTime.getDay()];
 
-    const schedule = await TimeTable.findOne({
-      room_id,
-      day: currentDay,
-      start_time: { $lte: queryTime },
-      end_time: { $gte: queryTime },
-    })
+    // Extract current time as minutes-since-midnight (local time)
+    const currentMinutes = queryTime.getHours() * 60 + queryTime.getMinutes();
+
+    // Fetch all timetable entries for this room and day
+    const entries = await TimeTable.find({ room_id, day: currentDay })
       .populate("course_id")
       .lean()
       .exec();
 
-    return schedule || null;
+    if (!entries.length) return null;
+
+    // Find one where current local time falls between start and end
+    const match = entries.find((entry: any) => {
+      const start = new Date(entry.start_time);
+      const end = new Date(entry.end_time);
+
+      const startMinutes = start.getHours() * 60 + start.getMinutes();
+      const endMinutes = end.getHours() * 60 + end.getMinutes();
+
+      if (punchType === "in") {
+        // Can punch in from 15 mins before to 5 mins after start
+        return currentMinutes >= (startMinutes - 15) && currentMinutes <= (startMinutes + 5);
+      } else if (punchType === "out") {
+        // Can punch out from 15 mins before to 5 mins after end
+        return currentMinutes >= (endMinutes - 15) && currentMinutes <= (endMinutes + 5);
+      }
+
+      // Default: anywhere within class bounding time
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    });
+
+    return match || null;
   } catch (error) {
     console.error("Error getting scheduled class:", error);
     return null;
@@ -129,6 +153,7 @@ export async function verifyAttendanceEligibility(
   student_latitude: number,
   student_longitude: number,
   currentTime: Date = new Date(),
+  punchType: "in" | "out" = "in"
 ): Promise<{
   eligible: boolean;
   location_verified: boolean;
@@ -146,7 +171,7 @@ export async function verifyAttendanceEligibility(
     );
 
     // Check scheduled class and time
-    const scheduledClass = await getScheduledClassAtTime(room_id, currentTime);
+    const scheduledClass = await getScheduledClassAtTime(room_id, currentTime, punchType);
 
     const isEligible = locationResult.isWithinGeofence && !!scheduledClass;
 

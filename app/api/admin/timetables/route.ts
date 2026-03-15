@@ -1,6 +1,6 @@
 // app/api/admin/timetables/route.ts
-import { NextResponse } from "next/server";
-import { withAdmin, AdminRequest } from "@/lib/admin-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { withAdmin } from "@/lib/admin-auth";
 import connectDB from "@/lib/mongodb";
 import TimeTable from "@/models/TimeTable";
 import Room from "@/models/Room";
@@ -10,7 +10,7 @@ import Course from "@/models/Course";
  * GET /api/admin/timetables
  * Get all timetables with optional filters
  */
-export const GET = withAdmin(async (request: AdminRequest) => {
+export const GET = withAdmin(async (request: NextRequest) => {
   try {
     await connectDB();
 
@@ -19,7 +19,7 @@ export const GET = withAdmin(async (request: AdminRequest) => {
     const course_id = url.searchParams.get("course_id");
     const day = url.searchParams.get("day");
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (room_id) query.room_id = room_id;
     if (course_id) query.course_id = course_id;
@@ -49,7 +49,7 @@ export const GET = withAdmin(async (request: AdminRequest) => {
  * POST /api/admin/timetables
  * Create a new timetable entry
  */
-export const POST = withAdmin(async (request: AdminRequest) => {
+export const POST = withAdmin(async (request: NextRequest) => {
   try {
     await connectDB();
 
@@ -100,10 +100,25 @@ export const POST = withAdmin(async (request: AdminRequest) => {
     const startTime = new Date(start_time);
     const endTime = new Date(end_time);
 
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid start_time or end_time format" },
+        { status: 400 },
+      );
+    }
+
     // Validate time range
     if (startTime >= endTime) {
       return NextResponse.json(
         { error: "Start time must be before end time" },
+        { status: 400 },
+      );
+    }
+
+    const durationHrs = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+    if (durationHrs !== 1) {
+      return NextResponse.json(
+        { error: "Time slots must be exactly 1 hour long." },
         { status: 400 },
       );
     }

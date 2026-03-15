@@ -58,8 +58,12 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirect to home page
-      router.push("/home");
+      // Redirect to home page or admin panel based on role
+      if (data.user.is_admin) {
+        router.push("/admin");
+      } else {
+        router.push("/home");
+      }
     } catch (err) {
       console.error("Login error:", err);
       setError("Network error. Please try again.");

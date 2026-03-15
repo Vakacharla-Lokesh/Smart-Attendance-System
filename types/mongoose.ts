@@ -37,11 +37,18 @@ export interface ICourseDocument extends BaseDocument {
 
 // TimeTable document interface
 export interface ITimeTableDocument extends BaseDocument {
-  course_id: string;
-  day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
-  start_time: string;
-  end_time: string;
-  room_number: string;
+  room_id: Types.ObjectId;
+  course_id: Types.ObjectId;
+  day:
+    | "Monday"
+    | "Tuesday"
+    | "Wednesday"
+    | "Thursday"
+    | "Friday"
+    | "Saturday"
+    | "Sunday";
+  start_time: Date;
+  end_time: Date;
 }
 
 // Lean document types (without mongoose methods)
@@ -87,11 +94,11 @@ export interface CourseResponse {
 
 export interface TimeTableResponse {
   id: string;
+  room_id: string;
   course_id: string;
   day: string;
-  start_time: string;
-  end_time: string;
-  room_number: string;
+  start_time: Date;
+  end_time: Date;
   created_at: Date;
   updated_at: Date;
 }

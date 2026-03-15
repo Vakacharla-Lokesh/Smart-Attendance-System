@@ -27,21 +27,24 @@ const studentSchema = new mongoose.Schema(
     },
     course: {
       type: String,
-      required: true,
       trim: true,
     },
     year: {
       type: Number,
-      required: true,
       min: 1,
       max: 5,
     },
     section: {
       type: String,
-      required: true,
       trim: true,
     },
     rfid_tag: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    card_number: {
       type: String,
       unique: true,
       sparse: true,
@@ -55,16 +58,16 @@ const studentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    profile_photo: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
   },
 );
 
-studentSchema.index({ enroll_number: 1 });
-studentSchema.index({ email: 1 });
-studentSchema.index({ rfid_tag: 1 });
-studentSchema.index({ course: 1, year: 1, section: 1 });
 
 const Student =
   mongoose.models.Student || mongoose.model("Student", studentSchema);

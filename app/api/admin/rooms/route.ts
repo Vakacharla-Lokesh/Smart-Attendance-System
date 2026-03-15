@@ -1,6 +1,6 @@
 // app/api/admin/rooms/route.ts
-import { NextResponse } from "next/server";
-import { withAdmin, AdminRequest } from "@/lib/admin-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { withAdmin } from "@/lib/admin-auth";
 import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 
@@ -8,7 +8,7 @@ import Room from "@/models/Room";
  * GET /api/admin/rooms
  * Get all rooms with optional filters
  */
-export const GET = withAdmin(async (request: AdminRequest) => {
+export const GET = withAdmin(async (request: NextRequest) => {
   try {
     await connectDB();
 
@@ -17,7 +17,7 @@ export const GET = withAdmin(async (request: AdminRequest) => {
     const floor = url.searchParams.get("floor");
     const search = url.searchParams.get("search");
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (building) query.building = building;
     if (floor) query.floor = floor;
@@ -42,8 +42,8 @@ export const GET = withAdmin(async (request: AdminRequest) => {
       success: true,
       rooms,
       filters: {
-        buildings: buildings.sort(),
-        floors: floors.sort(),
+        buildings: (buildings as string[]).sort(),
+        floors: (floors as string[]).sort(),
       },
     });
   } catch (error) {
@@ -59,7 +59,7 @@ export const GET = withAdmin(async (request: AdminRequest) => {
  * POST /api/admin/rooms
  * Create a new room
  */
-export const POST = withAdmin(async (request: AdminRequest) => {
+export const POST = withAdmin(async (request: NextRequest) => {
   try {
     await connectDB();
 
@@ -142,12 +142,18 @@ export const POST = withAdmin(async (request: AdminRequest) => {
       },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create room error:", error);
 
     // Handle duplicate key errors
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern || {})[0];
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: number }).code === 11000
+    ) {
+      const mongoError = error as { keyPattern?: Record<string, unknown> };
+      const field = Object.keys(mongoError.keyPattern || {})[0];
       return NextResponse.json(
         { error: `${field} already exists` },
         { status: 409 },

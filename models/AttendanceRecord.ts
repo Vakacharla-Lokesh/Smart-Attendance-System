@@ -29,10 +29,8 @@ const AttendanceRecordSchema = new Schema<IAttendanceRecordDocument>(
   {
     timestamps: true,
     collection: "AttendanceRecord",
-  }
+  },
 );
-
-AttendanceRecordSchema.index({ enroll_number: 1 }, { unique: true });
 
 const AttendanceRecord =
   models.AttendanceRecord ||

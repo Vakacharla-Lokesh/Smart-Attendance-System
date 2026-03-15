@@ -1,0 +1,220 @@
+[{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6ca"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6c0",
+  "day": "Monday",
+  "start_time": "11:00",
+  "end_time": "12:30",
+  "room_number": "107",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6cc"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6c1",
+  "day": "Monday",
+  "start_time": "11:00",
+  "end_time": "12:30",
+  "room_number": "109",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6cd"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6c1",
+  "day": "Tuesday",
+  "start_time": "09:00",
+  "end_time": "10:30",
+  "room_number": "110",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6c5"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6bd",
+  "day": "Tuesday",
+  "start_time": "09:00",
+  "end_time": "10:30",
+  "room_number": "102",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6c4"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6bd",
+  "day": "Monday",
+  "start_time": "14:00",
+  "end_time": "15:30",
+  "room_number": "101",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6c7"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6be",
+  "day": "Tuesday",
+  "start_time": "16:00",
+  "end_time": "17:30",
+  "room_number": "104",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6c6"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6be",
+  "day": "Monday",
+  "start_time": "11:00",
+  "end_time": "12:30",
+  "room_number": "103",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6c8"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6bf",
+  "day": "Monday",
+  "start_time": "09:00",
+  "end_time": "10:30",
+  "room_number": "105",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6c9"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6bf",
+  "day": "Tuesday",
+  "start_time": "14:00",
+  "end_time": "15:30",
+  "room_number": "106",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.243Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b0627ec59c4cd32c7ec6cb"
+  },
+  "course_id": "69b0627ec59c4cd32c7ec6c0",
+  "day": "Tuesday",
+  "start_time": "09:00",
+  "end_time": "10:30",
+  "room_number": "108",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-10T18:27:10.244Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69b1b2ee81c3e3a2166d4b5e"
+  },
+  "room_id": {
+    "$oid": "69b1b2ed81c3e3a2166d4b48"
+  },
+  "course_id": {
+    "$oid": "69b1b2ee81c3e3a2166d4b5b"
+  },
+  "day": "Wednesday",
+  "start_time": {
+    "$date": "2026-03-11T16:30:00.000Z"
+  },
+  "end_time": {
+    "$date": "2026-03-11T18:29:00.000Z"
+  },
+  "createdAt": {
+    "$date": "2026-03-11T18:22:38.748Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-11T18:22:38.748Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69b27e0e9ffc458de2574c93"
+  },
+  "room_id": {
+    "$oid": "69b1b2ed81c3e3a2166d4b48"
+  },
+  "course_id": {
+    "$oid": "69b1b2ee81c3e3a2166d4b5b"
+  },
+  "day": "Thursday",
+  "start_time": {
+    "$date": "2026-03-12T07:30:00.000Z"
+  },
+  "end_time": {
+    "$date": "2026-03-12T11:29:00.000Z"
+  },
+  "createdAt": {
+    "$date": "2026-03-12T08:49:18.718Z"
+  },
+  "updatedAt": {
+    "$date": "2026-03-12T08:49:18.718Z"
+  },
+  "__v": 0
+}]

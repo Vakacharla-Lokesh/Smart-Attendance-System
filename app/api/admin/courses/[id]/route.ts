@@ -1,17 +1,17 @@
-import { NextResponse } from "next/server";
-import { authenticateAdmin, AdminRequest } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateAdmin } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import Course from "@/models/Course";
 
 // GET single course
 export async function GET(
-  request: AdminRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authError = await authenticateAdmin(request);
   if (authError) return authError;
 
-  const { id } = await params; // ← AWAIT params
+  const { id } = await params;
 
   try {
     await connectDB();
@@ -34,13 +34,13 @@ export async function GET(
 
 // PUT update course
 export async function PUT(
-  request: AdminRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authError = await authenticateAdmin(request);
   if (authError) return authError;
 
-  const { id } = await params; // ← AWAIT params
+  const { id } = await params;
 
   try {
     await connectDB();
@@ -68,13 +68,13 @@ export async function PUT(
 
 // DELETE course
 export async function DELETE(
-  request: AdminRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authError = await authenticateAdmin(request);
   if (authError) return authError;
 
-  const { id } = await params; // ← AWAIT params
+  const { id } = await params;
 
   try {
     await connectDB();

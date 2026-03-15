@@ -54,8 +54,7 @@ export default function AdminSidebar({
   };
 
   const handleLogout = () => {
-    // Implement logout logic
-    // console.log("Logging out...");
+    import("@/lib/logout").then((m) => m.logout());
   };
 
   const NavLink = ({ item }: { item: NavItem }) => {

@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
+import mongoose from "mongoose";
 import Punch from "@/models/Punch";
+import Course from "@/models/Course";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params; // ← AWAIT params here
+  const { id } = await params;
 
   try {
     await dbConnect();
 
-    const student = await Student.findById(id).lean();
+    const query = mongoose.isValidObjectId(id)
+      ? { _id: id }
+      : { enroll_number: id };
+    const student =
+      await Student.findOne(query).lean<Record<string, unknown>>();
 
     if (!student) {
       return NextResponse.json(
@@ -21,17 +27,28 @@ export async function GET(
       );
     }
 
-    // Get recent punches for this student
-    const recentPunches = await Punch.find({ student_id: id })
+    const recentPunches = await Punch.find({ student_id: student._id })
       .sort({ punch_time: -1 })
       .limit(10)
       .lean();
+
+    // Fetch related courses for the student (matched by department = student.course & year)
+    let enrolled_courses: unknown[] = [];
+    const studentCourse = student.course as string | undefined;
+    const studentYear = student.year as number | undefined;
+    if (studentCourse && studentYear) {
+      enrolled_courses = await Course.find({
+        department: studentCourse,
+        year: studentYear,
+      }).lean();
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         ...student,
         recentPunches,
+        enrolled_courses,
       },
     });
   } catch (error) {
@@ -51,7 +68,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params; // ← AWAIT params here
+  const { id } = await params;
 
   try {
     await dbConnect();
@@ -63,8 +80,11 @@ export async function PUT(
     delete body.createdAt;
     delete body.updatedAt;
 
-    const student = await Student.findByIdAndUpdate(
-      id,
+    const query = mongoose.isValidObjectId(id)
+      ? { _id: id }
+      : { enroll_number: id };
+    const student = await Student.findOneAndUpdate(
+      query,
       { $set: body },
       { new: true, runValidators: true },
     );
@@ -80,15 +100,16 @@ export async function PUT(
       success: true,
       data: student,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error updating student:", error);
 
-    if (error.code === 11000) {
+    if (error?.code === 11000) {
       return NextResponse.json(
         {
           success: false,
           error: "Duplicate entry detected",
-          message: error.message,
+          message: error.message ?? "Duplicate entry",
         },
         { status: 409 },
       );
@@ -109,12 +130,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params; // ← AWAIT params here
+  const { id } = await params;
 
   try {
     await dbConnect();
 
-    const student = await Student.findByIdAndDelete(id);
+    const query = mongoose.isValidObjectId(id)
+      ? { _id: id }
+      : { enroll_number: id };
+    const student = await Student.findOneAndDelete(query);
 
     if (!student) {
       return NextResponse.json(

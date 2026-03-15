@@ -1,30 +1,31 @@
-// app/api/attendance/pending/route.ts
-import { NextResponse } from "next/server";
-import { authenticateUser, AuthRequest } from "@/lib/auth";
-import { getPunchFromQueue, removePunchFromQueue } from "@/lib/redis";
-import { verifyAttendanceEligibility } from "@/lib/location-utils";
-import connectDB from "@/lib/mongodb";
-import AttendanceRecord from "@/models/AttendanceRecord";
+// FILE: app/api/attendance/pending/route.ts
+//
+// This route is a READ-ONLY status endpoint.
+// Its only job is to tell the student app whether a pending IoT scan exists
+// in the Redis queue — so the UI can show/hide the "Punch In" button.
+//
+// The actual punch-in logic (geofence check + DB write) lives in:
+//   POST /api/punch/manual  (punch_type: "in")
+//
+// The attendance marking logic lives in:
+//   POST /api/punch/manual  (punch_type: "out") — triggers after punch-out
 
-interface PendingAttendanceRequest extends AuthRequest {
-  user?: {
-    id: string;
-    email_id: string;
-    enroll_no: string;
-  };
-}
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { getPunchFromQueue } from "@/lib/redis";
+import { getScheduledClassAtTime } from "@/lib/location-utils";
 
 /**
- * GET: Check if student has any pending punch requests in the queue
- * Returns the pending request if found, allowing student to submit location
+ * GET /api/attendance/pending
+ * Returns whether a pending IoT scan exists for the authenticated student.
+ * The app uses this to show/hide the Punch In button and display the countdown.
  */
-export async function GET(request: PendingAttendanceRequest) {
-  // Authenticate user
-  const authError = await authenticateUser(request);
+export async function GET(request: NextRequest) {
+  const { user, error: authError } = getAuthenticatedUser(request);
   if (authError) return authError;
 
   try {
-    const enroll_number = request.user?.enroll_no;
+    const enroll_number = user?.enroll_no;
 
     if (!enroll_number) {
       return NextResponse.json(
@@ -33,188 +34,48 @@ export async function GET(request: PendingAttendanceRequest) {
       );
     }
 
-    // Check Redis queue for pending punch
     const pendingPunch = await getPunchFromQueue(enroll_number);
 
     if (!pendingPunch) {
       return NextResponse.json(
         {
           has_pending: false,
-          message: "No pending attendance requests",
+          message:
+            "No pending IoT scan. Please scan your card at the classroom reader.",
         },
         { status: 200 },
       );
     }
 
-    // Return pending request details
+    const expiresInSeconds = Math.max(
+      0,
+      Math.round(600 - (Date.now() - pendingPunch.timestamp) / 1000),
+    );
+
+    const scheduledClass = await getScheduledClassAtTime(pendingPunch.room_id, new Date(), "in");
+
     return NextResponse.json(
       {
         has_pending: true,
-        pending_request: {
+        pending_scan: {
           room_id: pendingPunch.room_id,
           scanner_id: pendingPunch.scanner_id,
-          queued_at: new Date(pendingPunch.timestamp).toISOString(),
-          expires_in_seconds: Math.max(
-            0,
-            600 - (Date.now() - pendingPunch.timestamp) / 1000,
-          ),
+          scanned_at: new Date(pendingPunch.timestamp).toISOString(),
+          expires_in_seconds: expiresInSeconds,
+          scheduled_class: scheduledClass ? {
+            _id: scheduledClass._id,
+            start_time: scheduledClass.start_time,
+            end_time: scheduledClass.end_time,
+            course_code: scheduledClass.course_id?.course_code,
+            course_name: scheduledClass.course_id?.course_name,
+          } : null
         },
-        message: "Please submit your location to verify attendance",
+        message: `IoT scan found. You have ${expiresInSeconds}s to punch in from the app.`,
       },
       { status: 200 },
     );
   } catch (error) {
-    console.error("Pending attendance GET error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
-
-/**
- * POST: Submit location to verify and mark attendance
- * Body: { latitude: number, longitude: number }
- */
-export async function POST(request: PendingAttendanceRequest) {
-  // Authenticate user
-  const authError = await authenticateUser(request);
-  if (authError) return authError;
-
-  try {
-    const body = await request.json();
-    const { latitude, longitude } = body;
-
-    const enroll_number = request.user?.enroll_no;
-
-    if (!enroll_number) {
-      return NextResponse.json(
-        { error: "User enrollment number not found" },
-        { status: 400 },
-      );
-    }
-
-    // Validate location coordinates
-    if (
-      typeof latitude !== "number" ||
-      typeof longitude !== "number" ||
-      latitude < -90 ||
-      latitude > 90 ||
-      longitude < -180 ||
-      longitude > 180
-    ) {
-      return NextResponse.json(
-        { error: "Invalid latitude or longitude" },
-        { status: 400 },
-      );
-    }
-
-    // Get pending punch from queue
-    const pendingPunch = await getPunchFromQueue(enroll_number);
-
-    if (!pendingPunch) {
-      return NextResponse.json(
-        { error: "No pending attendance request found" },
-        { status: 404 },
-      );
-    }
-
-    // Verify location and time eligibility
-    const eligibility = await verifyAttendanceEligibility(
-      pendingPunch.room_id,
-      latitude,
-      longitude,
-    );
-
-    if (!eligibility.eligible) {
-      return NextResponse.json(
-        {
-          message: "Attendance verification failed",
-          ...eligibility,
-        },
-        { status: 403 },
-      );
-    }
-
-    await connectDB();
-
-    // Mark attendance
-    const attendanceDate = new Date();
-    const dateOnly = new Date(
-      Date.UTC(
-        attendanceDate.getUTCFullYear(),
-        attendanceDate.getUTCMonth(),
-        attendanceDate.getUTCDate(),
-      ),
-    );
-
-    let attendanceRecord = await AttendanceRecord.findOne({
-      enroll_number,
-    }).exec();
-
-    if (!attendanceRecord) {
-      // Create new attendance record
-      attendanceRecord = await AttendanceRecord.create({
-        enroll_number,
-        attendance_entries: [
-          {
-            date: dateOnly,
-            room_id: pendingPunch.room_id,
-            location_verified: true,
-            marked_at: new Date(),
-          },
-        ],
-      });
-    } else {
-      // Check if already marked for today
-      const alreadyMarked = attendanceRecord.attendance_entries.some(
-        (entry: any) =>
-          entry.date.toISOString().split("T")[0] ===
-          dateOnly.toISOString().split("T")[0],
-      );
-
-      if (!alreadyMarked) {
-        attendanceRecord.attendance_entries.push({
-          date: dateOnly,
-          room_id: pendingPunch.room_id,
-          location_verified: true,
-          marked_at: new Date(),
-        });
-        await attendanceRecord.save();
-      } else {
-        return NextResponse.json(
-          {
-            message: "Attendance already marked for today",
-            status: "already_marked",
-          },
-          { status: 409 },
-        );
-      }
-    }
-
-    // Remove from queue after successful verification
-    await removePunchFromQueue(enroll_number);
-
-    // console.log(
-    //   `Attendance marked for ${enroll_number} in room ${pendingPunch.room_id}`,
-    // );
-
-    return NextResponse.json(
-      {
-        message: "Attendance marked successfully",
-        attendance: {
-          enroll_number,
-          date: dateOnly.toISOString().split("T")[0],
-          room_id: pendingPunch.room_id,
-          location_verified: true,
-          distance: eligibility.distance,
-          marked_at: new Date().toISOString(),
-        },
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Pending attendance POST error:", error);
+    console.error("[AttendancePending] GET error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -11,7 +11,6 @@ import { Loader2 } from "lucide-react";
 export default function RegisterPage() {
   const router = useRouter();
 
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,7 +18,8 @@ export default function RegisterPage() {
     confirmPassword: "",
     enrollNo: "",
     course: "",
-    semester: "",
+    year: "",
+    section: "",
     phone: "",
     cardNumber: "",
   });
@@ -27,28 +27,21 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
-    // Validate password length
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -62,12 +55,13 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name.trim(),
-          email_id: formData.email.trim(),
+          email: formData.email.trim(), // matches Student.email
           password: formData.password,
-          enroll_no: formData.enrollNo.trim(),
-          course: formData.course.trim(),
-          semester: parseInt(formData.semester),
-          phone_number: formData.phone.trim(),
+          enroll_no: formData.enrollNo.trim(), // maps to both models
+          phone: formData.phone.trim(), // matches Student.phone
+          course: formData.course.trim() || undefined,
+          year: formData.year ? parseInt(formData.year) : undefined,
+          section: formData.section.trim() || undefined,
           card_number: formData.cardNumber.trim() || undefined,
         }),
       });
@@ -80,11 +74,9 @@ export default function RegisterPage() {
         return;
       }
 
-      // SUCCESS! Store the token and user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirect to home page
       router.push("/home");
     } catch (err) {
       console.error("Registration error:", err);
@@ -105,7 +97,6 @@ export default function RegisterPage() {
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold text-center mb-6">Register</h2>
 
-            {/* Show error message if registration fails */}
             {error && (
               <Alert
                 variant="destructive"
@@ -115,13 +106,12 @@ export default function RegisterPage() {
               </Alert>
             )}
 
-            {/* Registration form */}
             <form
               onSubmit={handleSubmit}
               className="flex flex-col gap-4"
             >
-              {/* Personal Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Full Name */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Full Name <span className="text-red-500">*</span>
@@ -138,6 +128,7 @@ export default function RegisterPage() {
                   />
                 </div>
 
+                {/* Email */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Email <span className="text-red-500">*</span>
@@ -153,10 +144,109 @@ export default function RegisterPage() {
                     disabled={loading}
                   />
                 </div>
-              </div>
 
-              {/* Password Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Enrollment Number */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Enrollment Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="enrollNo"
+                    placeholder="EN12345"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    value={formData.enrollNo}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Phone <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="9876543210"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    value={formData.phone}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Course */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Course
+                  </label>
+                  <input
+                    type="text"
+                    name="course"
+                    placeholder="B.Tech CSE"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.course}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Year */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Year</label>
+                  <select
+                    name="year"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.year}
+                    onChange={handleChange}
+                    disabled={loading}
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                    <option value="5">5th Year</option>
+                  </select>
+                </div>
+
+                {/* Section */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Section
+                  </label>
+                  <input
+                    type="text"
+                    name="section"
+                    placeholder="A"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.section}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Card Number */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Card Number
+                  </label>
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    placeholder="RFID Card Number"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.cardNumber}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Password */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Password <span className="text-red-500">*</span>
@@ -170,10 +260,10 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     disabled={loading}
-                    minLength={6}
                   />
                 </div>
 
+                {/* Confirm Password */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Confirm Password <span className="text-red-500">*</span>
@@ -187,102 +277,8 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     disabled={loading}
-                    minLength={6}
                   />
                 </div>
-              </div>
-
-              {/* Academic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Enrollment Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="enrollNo"
-                    placeholder="E12345"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    value={formData.enrollNo}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Course <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="course"
-                    placeholder="Computer Science"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    value={formData.course}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Semester <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="semester"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    value={formData.semester}
-                    onChange={handleChange}
-                    disabled={loading}
-                  >
-                    <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option
-                        key={sem}
-                        value={sem}
-                      >
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="+1234567890"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    value={formData.phone}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              {/* Optional Card Number */}
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Card Number (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="cardNumber"
-                  placeholder="1234567890"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.cardNumber}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
               </div>
 
               <Button
@@ -293,10 +289,10 @@ export default function RegisterPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
+                    Registering...
                   </>
                 ) : (
-                  "Create Account"
+                  "Register"
                 )}
               </Button>
             </form>
@@ -307,7 +303,7 @@ export default function RegisterPage() {
                 href="/login"
                 className="text-blue-600 hover:underline"
               >
-                Log In
+                Log in
               </Link>
             </p>
           </CardContent>

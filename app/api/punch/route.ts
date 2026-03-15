@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
 
     const punches = await Punch.find(query)
       .populate("student_id", "enroll_number name course year section")
+      .populate("course_id", "course_code course_name")
+      .populate("timetable_id", "start_time end_time day")
       .sort({ punch_time: -1 })
       .limit(limit)
       .lean();

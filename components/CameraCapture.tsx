@@ -181,11 +181,14 @@ const CameraCapture = ({
                 </Button>
               </div>
             ) : capturedImage ? (
-              <img
-                src={capturedImage}
-                alt="Captured"
-                className="w-full h-full object-cover"
-              />
+              <div className="w-full h-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             ) : (
               <>
                 <video

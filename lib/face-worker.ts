@@ -5,10 +5,8 @@
 // Never import this file from Next.js — it must only run in plain Node.js.
 
 // Polyfill TextEncoder for face-api
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { TextEncoder: UtilTextEncoder } = require("util");
+const { TextEncoder: UtilTextEncoder } = require("util"); // eslint-disable-line @typescript-eslint/no-require-imports
 if (typeof global.TextEncoder === "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   global.TextEncoder = UtilTextEncoder;
 }
 

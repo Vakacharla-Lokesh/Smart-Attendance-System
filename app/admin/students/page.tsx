@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { Plus, Search, Edit, Trash2, Users, AlertCircle } from "lucide-react";
@@ -28,12 +28,7 @@ export default function StudentsPage() {
     is_active: true,
   });
 
-  useEffect(() => {
-    checkAuth();
-    fetchStudents();
-  }, []);
-
-  const checkAuth = () => {
+  const checkAuth = useCallback(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
     if (!token) {
@@ -47,9 +42,9 @@ export default function StudentsPage() {
       setAdminName(userData.name || "Admin User");
       setAdminEmail(userData.email || "admin@university.edu");
     }
-  };
+  }, [router]);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -72,7 +67,12 @@ export default function StudentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+    fetchStudents();
+  }, [checkAuth, fetchStudents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

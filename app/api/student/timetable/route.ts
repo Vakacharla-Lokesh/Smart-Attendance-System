@@ -3,7 +3,6 @@ import dbConnect from "@/lib/mongodb";
 import Student from "@/models/Student";
 import Course from "@/models/Course";
 import TimeTable from "@/models/TimeTable";
-import Room from "@/models/Room"; // to populate room info
 import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
@@ -35,9 +34,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Find enrolled courses based on department and year
+    const studentData = student as any;
     const enrolled_courses = await Course.find({
-      department: student.course,
-      year: student.year,
+      department: studentData?.course,
+      year: studentData?.year,
     }).lean();
 
     const courseIds = enrolled_courses.map((c) => c._id);

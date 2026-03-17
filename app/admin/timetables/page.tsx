@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -15,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Plus, Edit, Trash2, X, Clock } from "lucide-react";
+import { Calendar, Plus, Edit, Trash2, X } from "lucide-react";
 
 interface Room {
   _id: string;

@@ -100,7 +100,6 @@ export async function PUT(
       success: true,
       data: student,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error updating student:", error);
 

@@ -97,13 +97,31 @@ export default function HomePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => {
-    checkAuthAndLoadData();
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+  /**
+   * Hit GET /api/attendance/pending — returns has_pending: true only if
+   * this student's NFC tap is sitting in the Upstash Redis queue.
+   * Punch In button only renders when this is true.
+   */
+  const checkPendingPunch = useCallback(async (token: string) => {
+    setPendingLoading(true);
+    try {
+      const res = await fetch("/api/attendance/pending", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setPendingPunch(null);
+        return;
+      }
+      const data = await res.json();
+      setPendingPunch(data.has_pending ? data.pending_scan : null);
+    } catch {
+      setPendingPunch(null);
+    } finally {
+      setPendingLoading(false);
+    }
   }, []);
 
-  const checkAuthAndLoadData = async () => {
+  const checkAuthAndLoadData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const userString = localStorage.getItem("user");
@@ -131,31 +149,7 @@ export default function HomePage() {
       console.error("Error loading data:", error);
       setLoading(false);
     }
-  };
-
-  /**
-   * Hit GET /api/attendance/pending — returns has_pending: true only if
-   * this student's NFC tap is sitting in the Upstash Redis queue.
-   * Punch In button only renders when this is true.
-   */
-  const checkPendingPunch = useCallback(async (token: string) => {
-    setPendingLoading(true);
-    try {
-      const res = await fetch("/api/attendance/pending", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        setPendingPunch(null);
-        return;
-      }
-      const data = await res.json();
-      setPendingPunch(data.has_pending ? data.pending_scan : null);
-    } catch {
-      setPendingPunch(null);
-    } finally {
-      setPendingLoading(false);
-    }
-  }, []);
+  }, [checkPendingPunch, router]);
 
   /** Fetch most recent punch to determine punch-out eligibility */
   const fetchLastPunchType = async (token: string) => {
@@ -250,6 +244,12 @@ export default function HomePage() {
       });
     }
   };
+
+  useEffect(() => {
+    checkAuthAndLoadData();
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [checkAuthAndLoadData]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -1228,6 +1228,7 @@ export default function HomePage() {
                 ) : (
                   <>
                     <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={capturedImage}
                         className="w-full h-full object-cover"

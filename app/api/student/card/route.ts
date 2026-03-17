@@ -28,13 +28,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const studentData = student as any;
+
     return NextResponse.json({
       success: true,
       data: {
-        enroll_number: student.enroll_number,
-        name: student.name,
-        card_number: student.card_number || "",
-        is_active: student.is_active,
+        enroll_number: studentData?.enroll_number || '',
+        name: studentData?.name || '',
+        card_number: studentData?.card_number || "",
+        is_active: studentData?.is_active || false,
       },
     });
   } catch (error) {

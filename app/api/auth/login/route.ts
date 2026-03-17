@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         .lean()
         .exec();
 
-      isAdmin = student?.is_admin || false;
+      isAdmin = (student && typeof student === 'object' && 'is_admin' in student && student.is_admin) || false;
     }
 
     // Generate JWT token WITH is_admin field

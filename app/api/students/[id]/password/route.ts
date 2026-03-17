@@ -56,7 +56,6 @@ export async function PUT(
       success: true,
       message: "Password updated successfully",
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error updating password:", error);
     return NextResponse.json(

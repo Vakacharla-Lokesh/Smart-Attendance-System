@@ -41,7 +41,6 @@ export async function GET(
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec = record as any as {
       enroll_number: string;
       present_dates: Date[];

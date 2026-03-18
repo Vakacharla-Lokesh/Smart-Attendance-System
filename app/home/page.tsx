@@ -317,8 +317,8 @@ export default function HomePage() {
         setPunchStatus("error");
         setPunchError(
           data.error ||
-            data.message ||
-            "Punch in failed. You may be too far from the classroom.",
+          data.message ||
+          "Punch in failed. You may be too far from the classroom.",
         );
         return;
       }
@@ -478,11 +478,11 @@ export default function HomePage() {
 
   if (user?.is_admin) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="bg-card text-card-foreground border-b border-border">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
           <div className="container mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
                 <ShieldCheck className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -516,7 +516,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-6 py-10 max-w-7xl">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-foreground">
               Welcome back, Administrator
@@ -597,8 +597,8 @@ export default function HomePage() {
                 <p className="text-3xl font-bold text-foreground mt-2">
                   {stats.totalStudents > 0
                     ? Math.round(
-                        (stats.currentlyInside / stats.totalStudents) * 100,
-                      )
+                      (stats.currentlyInside / stats.totalStudents) * 100,
+                    )
                     : 0}
                   %
                 </p>
@@ -611,7 +611,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link href="/dashboard">
-              <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
+              <Card className="border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 transition-all cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -631,7 +631,7 @@ export default function HomePage() {
             </Link>
 
             <Link href="/attendance">
-              <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
+              <Card className="border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 transition-all cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -651,7 +651,7 @@ export default function HomePage() {
             </Link>
 
             <Link href="/admin">
-              <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
+              <Card className="border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 transition-all cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -691,572 +691,327 @@ export default function HomePage() {
     );
   }
 
-  // ─── STUDENT DASHBOARD ──────────────────────────────────────────────────────
+  {/* ─── STUDENT DASHBOARD ────────────────────────────────────────────────────── */ }
 
   const isPunchInAvailable = !!pendingPunch;
   const isPunchedIn = lastPunchType === "in";
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card text-card-foreground border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-white" />
+    <div className="h-screen flex bg-[#020617] text-white overflow-hidden">
+
+      {/* ─── SIDEBAR ───────────────────────────────────────── */}
+
+      <div className="w-64 bg-[#0f172a] border-r border-white/10 flex flex-col justify-between">
+
+        <div>
+
+          {/* PROFILE */}
+          <div className="px-6 py-6 border-b border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-semibold">
+                {user?.name?.charAt(0) || "S"}
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold">{user?.name || "Student"}</p>
+                <p className="text-xs text-white/50">{user?.enroll_no}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Student Portal
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Welcome, {user?.name || user?.enroll_no}
-              </p>
+
+            <div className="text-xs space-y-1 text-white/60">
+              <p>📍 Status: {lastPunchType === "in" ? "Inside Campus" : "Outside"}</p>
+              <p>📅 {new Date().toLocaleDateString()}</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="text-foreground"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </header>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground">Welcome back!</h2>
-          <p className="text-muted-foreground mt-2">
-            Track your attendance and view your academic progress
-          </p>
-        </div>
-
-        {/* ── ATTENDANCE ACTION CARD ────────────────────────────────────────── */}
-        <Card className="border border-border mb-8 shadow-sm">
-          <CardContent className="p-6">
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-lg">
-                    Mark Your Attendance
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {isPunchedIn
-                      ? "You are currently punched in."
-                      : "You are currently punched out."}
-                  </p>
-                </div>
+          {/* NAV */}
+          <div className="p-4 space-y-2">
+            <Link href="/student/portal">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <BookOpen className="w-4 h-4" /> Dashboard
               </div>
+            </Link>
 
-              {/* Manual refresh */}
-              <button
-                onClick={refreshPendingStatus}
-                disabled={pendingLoading}
-                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 disabled:opacity-50"
-              >
-                {pendingLoading ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Wifi className="w-3 h-3" />
-                )}
-                Refresh
-              </button>
+            <Link href={`/student/${user?.enroll_no}`}>
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <Calendar className="w-4 h-4" /> Attendance
+              </div>
+            </Link>
+
+            <Link href={`/student/${user?.enroll_no}/profile`}>
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <Settings className="w-4 h-4" /> Profile
+              </div>
+            </Link>
+          </div>
+
+          {/* NOTIFICATIONS */}
+          <div className="px-4 pb-4 space-y-2">
+            <p className="text-xs text-white/50 mb-2">Notifications</p>
+
+            <div className="bg-white/5 p-3 rounded-lg text-xs border border-white/10">
+              ⚠ Attendance below 75%
             </div>
 
-            {/* NFC detected & Upcoming Class banner */}
-            {isPunchInAvailable && pendingPunch.scheduled_class && (
-              <div className="mb-4 flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg text-purple-800 text-sm shadow-sm ring-1 ring-purple-100">
-                <BookOpen className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
-                <div className="flex-1 w-full">
-                  <p className="font-bold text-base text-purple-900 mb-1">
-                    Upcoming Class
-                  </p>
-                  <p className="text-sm font-medium mb-1 line-clamp-2">
-                    {pendingPunch.scheduled_class.course_code} •{" "}
-                    {pendingPunch.scheduled_class.course_name}
-                  </p>
-                  <p className="text-xs text-purple-700 flex items-center gap-1.5 mb-3 bg-card text-card-foreground/50 w-fit px-2 py-1 rounded-md border border-purple-100">
-                    <Clock className="w-3.5 h-3.5" />
-                    {new Date(
-                      pendingPunch.scheduled_class.start_time,
-                    ).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    -
-                    <span className="ml-1">
-                      {new Date(
-                        pendingPunch.scheduled_class.end_time,
-                      ).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </p>
+            <div className="bg-white/5 p-3 rounded-lg text-xs border border-white/10">
+              📢 Assignment due tomorrow
+            </div>
+          </div>
 
-                  {/* Timer UI */}
-                  {(() => {
-                    const limitTime =
-                      new Date(
-                        pendingPunch.scheduled_class!.start_time,
-                      ).getTime() +
-                      5 * 60000;
-                    const diff = limitTime - currentTime.getTime();
+        </div>
 
-                    if (diff <= 0) {
-                      return (
-                        <div className="p-2.5 rounded-lg bg-red-100 border border-red-200 text-red-700 flex items-center gap-2 mt-2">
-                          <XCircle className="w-4 h-4" />
-                          <span className="font-semibold text-sm">
-                            Late (Punch-In Window Closed)
-                          </span>
-                        </div>
-                      );
-                    }
+        {/* LOGOUT */}
+        <button
+          onClick={handleLogout}
+          className="m-4 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-red-500 hover:bg-red-600 transition"
+        >
+          <LogOut className="w-4 h-4" /> Logout
+        </button>
 
-                    const mins = Math.floor(diff / 60000);
-                    const secs = Math.floor((diff % 60000) / 1000);
-                    const isClosingSoon = mins < 2;
-                    return (
-                      <div
-                        className={`p-2.5 rounded-lg border flexitems-center gap-2 mt-2 w-full transition-colors ${isClosingSoon ? "bg-orange-100 border-orange-200 text-orange-700" : "bg-green-100 border-green-200 text-green-700"}`}
-                      >
-                        <Clock
-                          className={`w-4 h-4 ${isClosingSoon ? "animate-pulse" : ""}`}
-                        />
-                        <span className="font-semibold text-sm">
-                          Time left to punch in: {mins}m {secs}s
-                        </span>
-                      </div>
-                    );
-                  })()}
+      </div>
+
+
+      {/* ─── MAIN ───────────────────────────────────────── */}
+
+      <div className="flex-1 flex flex-col px-8 py-6 gap-6 overflow-hidden">
+
+        {/* TOP GRID */}
+        <div className="grid grid-cols-2 gap-6">
+
+          {/* STUDENT INFO */}
+          <Card className="bg-[#0f172a] border border-white/10 text-white">
+            <CardContent className="p-6">
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-lg bg-emerald-500/20 flex items-center justify-center text-lg font-bold text-emerald-400">
+                  {user?.name?.charAt(0) || "S"}
                 </div>
-              </div>
-            )}
 
-            {/* NFC detected but NO class scheduled banner */}
-            {isPunchInAvailable && !pendingPunch.scheduled_class && (
-              <div className="mb-4 flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
-                <Wifi className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium">
-                    NFC card detected, but no class scheduled!
-                  </p>
-                  <p className="text-xs text-blue-600 mt-0.5">
-                    Scanner: {pendingPunch.scanner_id} &middot; Room:{" "}
-                    {pendingPunch.room_id} &middot; Expires in{" "}
-                    {Math.floor(pendingPunch.expires_in_seconds / 60)}m{" "}
-                    {Math.floor(pendingPunch.expires_in_seconds % 60)}s
-                  </p>
+                  <h2 className="text-xl font-semibold">{user?.name || "Student"}</h2>
+                  <p className="text-sm text-white/50">Enrollment: {user?.enroll_no}</p>
                 </div>
               </div>
-            )}
 
-            {/* Punched in & Ongoing Class banner */}
-            {isPunchedIn && lastPunch?.timetable_id && (
-              <div className="mb-4 flex items-start gap-3 p-4 bg-sky-50 border border-sky-200 rounded-lg text-sky-800 text-sm shadow-sm ring-1 ring-sky-100">
-                <BookOpen className="w-5 h-5 mt-0.5 flex-shrink-0 text-sky-600" />
-                <div className="flex-1 w-full">
-                  <p className="font-bold text-base text-sky-900 mb-1">
-                    Ongoing Class
-                  </p>
-                  <p className="text-sm font-medium mb-1 line-clamp-2">
-                    {lastPunch.course_id?.course_code} •{" "}
-                    {lastPunch.course_id?.course_name}
-                  </p>
-                  <p className="text-xs text-sky-700 flex items-center gap-1.5 mb-3 bg-card text-card-foreground/50 w-fit px-2 py-1 rounded-md border border-sky-100">
-                    <Clock className="w-3.5 h-3.5" />
-                    {new Date(
-                      lastPunch.timetable_id.start_time,
-                    ).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    -
-                    <span className="ml-1">
-                      {new Date(
-                        lastPunch.timetable_id.end_time,
-                      ).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-white/50">Branch</p>
+                  <p className="font-medium">Computer Science</p>
+                </div>
 
-                  {/* Timer UI for Punch Out */}
-                  {(() => {
-                    const endTime = new Date(
-                      lastPunch.timetable_id.end_time,
-                    ).getTime();
-                    const maxPunchOutTime = endTime + 5 * 60000;
-                    const minPunchOutTime = endTime - 15 * 60000;
-                    const curr = currentTime.getTime();
+                <div>
+                  <p className="text-white/50">Year</p>
+                  <p className="font-medium">3rd Year</p>
+                </div>
 
-                    if (curr > maxPunchOutTime) {
-                      return (
-                        <div className="p-2.5 rounded-lg bg-red-100 border border-red-200 text-red-700 flex items-center gap-2 mt-2">
-                          <XCircle className="w-4 h-4" />
-                          <span className="font-semibold text-sm">
-                            Late (Punch-out Window Closed)
-                          </span>
-                        </div>
-                      );
-                    } else if (curr < minPunchOutTime) {
-                      const diffStart = minPunchOutTime - curr;
-                      const minsS = Math.floor(diffStart / 60000);
-                      const secsS = Math.floor((diffStart % 60000) / 1000);
-                      return (
-                        <div className="p-2.5 rounded-lg bg-orange-100 border border-orange-200 text-orange-700 flex items-center gap-2 mt-2 w-full">
-                          <Clock className="w-4 h-4" />
-                          <span className="font-semibold text-sm">
-                            Class ongoing. Punch out opens in: {minsS}m {secsS}
-                            s.
-                          </span>
-                        </div>
-                      );
-                    }
+                <div>
+                  <p className="text-white/50">Section</p>
+                  <p className="font-medium">A</p>
+                </div>
 
-                    const diff = maxPunchOutTime - curr;
-                    const mins = Math.floor(diff / 60000);
-                    const secs = Math.floor((diff % 60000) / 1000);
-                    const isClosingSoon = mins < 2;
-                    return (
-                      <div
-                        className={`p-2.5 rounded-lg border flex items-center gap-2 mt-2 w-full transition-colors ${isClosingSoon ? "bg-orange-100 border-orange-200 text-orange-700" : "bg-green-100 border-green-200 text-green-700"}`}
-                      >
-                        <CheckCircle
-                          className={`w-4 h-4 ${isClosingSoon ? "animate-pulse" : ""}`}
-                        />
-                        <span className="font-semibold text-sm">
-                          Time left to punch out: {mins}m {secs}s
-                        </span>
-                      </div>
-                    );
-                  })()}
+                <div>
+                  <p className="text-white/50">Status</p>
+                  <p className="text-emerald-400 font-medium">Active</p>
                 </div>
               </div>
-            )}
 
-            {/* No NFC banner */}
-            {!isPunchInAvailable && !pendingLoading && (
-              <div className="mb-4 flex items-start gap-2 p-3 bg-background border border-border rounded-lg text-muted-foreground text-sm">
-                <WifiOff className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>
-                  No NFC scan detected. Tap your card at the classroom scanner,
-                  then return here and click <strong>Refresh</strong> to unlock
-                  Punch In.
-                </p>
-              </div>
-            )}
+            </CardContent>
+          </Card>
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Punch In — only rendered when NFC entry is in Redis */}
-              {isPunchInAvailable && (
+
+          {/* ATTENDANCE ACTION */}
+          <Card className="bg-[#0f172a] border border-white/10 text-white">
+            <CardContent className="p-6">
+
+              <div className="flex justify-between items-center mb-5">
+                <div>
+                  <p className="font-semibold">Attendance</p>
+                  <p className="text-sm text-white/50">
+                    {isPunchedIn ? "Currently Punched In" : "Currently Punched Out"}
+                  </p>
+                </div>
+
                 <button
-                  onClick={handlePunchIn}
-                  disabled={punchStatus === "loading"}
-                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold text-base transition-all
-                    ${
-                      punchStatus === "loading"
-                        ? "bg-green-400 text-white cursor-not-allowed"
-                        : "bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white shadow-md hover:shadow-lg"
-                    }`}
+                  onClick={refreshPendingStatus}
+                  disabled={pendingLoading}
+                  className="text-sm text-emerald-400 flex items-center gap-1"
                 >
-                  {punchStatus === "loading" ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <LogIn className="w-5 h-5" />
-                  )}
-                  Punch In
+                  {pendingLoading
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Wifi className="w-4 h-4" />}
+                  Refresh
                 </button>
-              )}
+              </div>
 
-              {/* Punch Out — available once punched in, no location required */}
-              <button
-                onClick={handlePunchOut}
-                disabled={punchStatus === "loading" || !isPunchedIn}
-                className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold text-base transition-all
-                  ${
-                    !isPunchedIn
-                      ? "bg-orange-50 border-2 border-orange-200 text-orange-300 cursor-not-allowed"
-                      : punchStatus === "loading"
-                        ? "bg-orange-400 text-white cursor-not-allowed"
-                        : "bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white shadow-md hover:shadow-lg"
-                  }`}
-              >
-                {punchStatus === "loading" ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <LogOutIcon className="w-5 h-5" />
+              <div className="flex gap-4">
+                {isPunchInAvailable && (
+                  <button
+                    onClick={handlePunchIn}
+                    disabled={punchStatus === "loading"}
+                    className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 py-3 rounded-lg font-medium"
+                  >
+                    {punchStatus === "loading"
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <LogIn className="w-4 h-4" />}
+                    Punch In
+                  </button>
                 )}
-                {isPunchedIn ? "Punch Out" : "Not Punched In"}
-              </button>
-            </div>
 
-            {/* Feedback banners */}
-            {punchStatus === "success" && punchMessage && (
-              <div className="mt-4 flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{punchMessage}</span>
-              </div>
-            )}
-            {punchStatus === "error" && punchError && (
-              <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{punchError}</span>
-              </div>
-            )}
-
-            <p className="mt-4 text-xs text-muted-foreground flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              Punch In requires an NFC tap at the scanner and GPS location
-              verification. Punch Out has no location requirement.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* ── STATS CARDS ───────────────────────────────────────────────────── */}
-        {studentStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border border-border">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-green-100 rounded-lg">
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-                <h3 className="text-muted-foreground text-sm font-medium">
-                  Attendance Rate
-                </h3>
-                <p className="text-3xl font-bold text-foreground mt-2">
-                  {studentStats.attendance_percentage.toFixed(1)}%
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Overall performance
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <Calendar className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-                <h3 className="text-muted-foreground text-sm font-medium">
-                  Present Days
-                </h3>
-                <p className="text-3xl font-bold text-foreground mt-2">
-                  {studentStats.present_days}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Out of {studentStats.total_days} days
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-red-100 rounded-lg">
-                    <Clock className="w-6 h-6 text-red-600" />
-                  </div>
-                </div>
-                <h3 className="text-muted-foreground text-sm font-medium">
-                  Absent Days
-                </h3>
-                <p className="text-3xl font-bold text-foreground mt-2">
-                  {studentStats.absent_days}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Days missed
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <BarChart3 className="w-6 h-6 text-purple-600" />
-                  </div>
-                </div>
-                <h3 className="text-muted-foreground text-sm font-medium">
-                  Status
-                </h3>
-                <p className="text-3xl font-bold text-foreground mt-2">
-                  {studentStats.attendance_percentage >= 75 ? "✓" : "!"}
-                </p>
-                <p
-                  className={`text-sm mt-2 ${
-                    studentStats.attendance_percentage >= 75
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
+                <button
+                  onClick={handlePunchOut}
+                  disabled={!isPunchedIn || punchStatus === "loading"}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium
+                    ${!isPunchedIn
+                      ? "bg-white/10 text-white/40"
+                      : "bg-orange-500 hover:bg-orange-600"}
+`}
                 >
-                  {studentStats.attendance_percentage >= 75
-                    ? "On track"
-                    : "Below 75%"}
-                </p>
-              </CardContent>
+                  {punchStatus === "loading"
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <LogOutIcon className="w-4 h-4" />}
+                  {isPunchedIn ? "Punch Out" : "Not Available"}
+                </button>
+              </div>
+
+            </CardContent>
+          </Card>
+
+        </div>
+
+
+        {/* STATS (BACK TO MAIN) */}
+        {studentStats && (
+          <div className="grid grid-cols-4 gap-6">
+
+            <Card className="bg-[#0f172a] border border-white/10 text-white p-5">
+              <p className="text-sm text-white/50">Attendance %</p>
+              <p className="text-2xl font-bold text-emerald-400 mt-1">
+                {studentStats.attendance_percentage.toFixed(1)}%
+              </p>
             </Card>
+
+            <Card className="bg-[#0f172a] border border-white/10 text-white p-5">
+              <p className="text-sm text-white/50">Present</p>
+              <p className="text-2xl font-bold mt-1">
+                {studentStats.present_days}
+              </p>
+            </Card>
+
+            <Card className="bg-[#0f172a] border border-white/10 text-white p-5">
+              <p className="text-sm text-white/50">Absent</p>
+              <p className="text-2xl font-bold text-red-400 mt-1">
+                {studentStats.absent_days}
+              </p>
+            </Card>
+
+            <Card className="bg-[#0f172a] border border-white/10 text-white p-5">
+              <p className="text-sm text-white/50">Status</p>
+              <p className="text-md font-semibold mt-1">
+                {studentStats.attendance_percentage >= 75 ? "On Track" : "Below 75%"}
+              </p>
+            </Card>
+
           </div>
         )}
 
-        {/* ── NAVIGATION CARDS ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/student/portal">
-            <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      My Dashboard
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      View detailed stats &amp; calendar
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
 
-          <Link href={`/student/${user?.enroll_no}`}>
-            <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      Attendance Calendar
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      View monthly attendance
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+        {/* LOWER GRID */}
+        <div className="grid grid-cols-2 gap-6">
 
-          <Link href={`/student/${user?.enroll_no}/profile`}>
-            <Card className="border border-border hover:shadow-lg transition-all cursor-pointer">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Settings className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      Profile Settings
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Manage your settings
-                    </p>
-                  </div>
+          {/* SUBJECTS (7 TOTAL) */}
+          <Card className="bg-[#0f172a] border border-white/10 text-white">
+            <CardContent className="p-6">
+              <h3 className="font-semibold mb-4">Subjects</h3>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <span>Data Structures</span>
+                <span>Web Development</span>
+                <span>Operating Systems</span>
+                <span>DBMS</span>
+                <span>Computer Networks</span>
+                <span>Software Engineering</span>
+                <span>AI / ML</span>
+              </div>
+
+            </CardContent>
+          </Card>
+
+
+          {/* ASSIGNMENTS */}
+          <Card className="bg-[#0f172a] border border-white/10 text-white">
+            <CardContent className="p-6">
+              <h3 className="font-semibold mb-4">Assignments</h3>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span>DSA Sheet</span>
+                  <span className="text-red-400">Tomorrow</span>
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
+
+                <div className="flex justify-between">
+                  <span>Web Project</span>
+                  <span className="text-yellow-400">2 days</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>OS Notes</span>
+                  <span className="text-emerald-400">Done</span>
+                </div>
+              </div>
+
+            </CardContent>
+          </Card>
+
         </div>
 
-        <Card className="mt-8 border-l-4 border-l-blue-600">
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-foreground mb-2">
-              📌 How Attendance Works
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Tap your NFC card at the classroom scanner — this unlocks the{" "}
-              <strong>Punch In</strong> button here. Then share your location to
-              verify you are in the classroom. <strong>Punch Out</strong> is
-              always available once you have punched in, and does not require
-              location.
-            </p>
-          </CardContent>
-        </Card>
-        {/* ── CAMERA MODAL ───────────────────────────────────────────────────── */}
-        {showCamera && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-            <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="p-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-semibold text-foreground">
-                  Take a Photo to Punch Out
-                </h3>
-                <button
-                  onClick={() => {
-                    stopCamera();
-                    setShowCamera(false);
-                    setCapturedImage(null);
-                  }}
-                  className="text-muted-foreground hover:text-foreground text-xl leading-none"
-                >
-                  ✕
-                </button>
-              </div>
+      </div>
 
-              <div className="p-4 flex flex-col items-center gap-4">
-                {!capturedImage ? (
-                  <>
-                    <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full object-cover"
-                        playsInline
-                        muted
-                      />
-                    </div>
-                    <button
-                      onClick={capturePhoto}
-                      className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base transition-all shadow-md"
-                    >
-                      📸 Capture Photo
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={capturedImage}
-                        className="w-full h-full object-cover"
-                        alt="Captured"
-                      />
-                    </div>
-                    <div className="flex gap-3 w-full">
-                      <button
-                        onClick={retakePhoto}
-                        className="flex-1 py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
-                      >
-                        Retake
-                      </button>
-                      <button
-                        onClick={() => submitPunchOut(capturedImage)}
-                        disabled={punchStatus === "loading"}
-                        className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-60"
-                      >
-                        {punchStatus === "loading"
-                          ? "Submitting…"
-                          : "Confirm & Punch Out"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+      <div className="p-4 flex flex-col items-center gap-4">
+        {!capturedImage ? (
+          <>
+            <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                playsInline
+                muted
+              />
             </div>
-          </div>
+            <button
+              onClick={capturePhoto}
+              className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base transition-all shadow-md"
+            >
+              📸 Capture Photo
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={capturedImage}
+                className="w-full h-full object-cover"
+                alt="Captured"
+              />
+            </div>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={retakePhoto}
+                className="flex-1 py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
+              >
+                Retake
+              </button>
+              <button
+                onClick={() => submitPunchOut(capturedImage)}
+                disabled={punchStatus === "loading"}
+                className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-60"
+              >
+                {punchStatus === "loading"
+                  ? "Submitting…"
+                  : "Confirm & Punch Out"}
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

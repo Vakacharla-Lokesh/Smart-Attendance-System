@@ -9,32 +9,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  // useRouter allows us to redirect users to different pages
   const router = useRouter();
 
-  // These store what the user types in the form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // This stores any error messages
   const [error, setError] = useState("");
-
-  // This tracks if we're currently logging in (shows loading spinner)
   const [loading, setLoading] = useState(false);
 
-  // This function runs when the user clicks "Log In"
   const handleSubmit = async (e: React.FormEvent) => {
-    // Prevent the page from refreshing
     e.preventDefault();
-
-    // Clear any previous errors
     setError("");
-
-    // Show loading spinner
     setLoading(true);
 
     try {
-      // Send login request to our API
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,21 +32,17 @@ export default function LoginPage() {
         }),
       });
 
-      // Get the response data
       const data = await response.json();
 
-      // Check if login failed
       if (!response.ok) {
         setError(data.error || "Login failed");
         setLoading(false);
         return;
       }
 
-      // SUCCESS! Store the token and user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirect to home page or admin panel based on role
       if (data.user.is_admin) {
         router.push("/admin");
       } else {
@@ -73,60 +57,71 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="p-2 rounded-4xl bg-gradient-to-b bg-black">
-        <Link href={"/"}>
-          <Button variant="default">Back</Button>
-        </Link>
-      </div>
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b bg-black font-sans px-4">
-        <Card className="w-full max-w-md shadow-md rounded-2xl">
-          <CardContent className="p-8">
-            <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0f172a] via-[#0b1a33] to-[#020617] text-white font-sans px-4">
 
-            {/* Show error message if login fails */}
+        {/* Back Button */}
+        <div className="absolute top-6 left-6">
+          <Link href={"/"}>
+            <Button
+              variant="outline"
+              className="border-slate-700 bg-[#0f172a]/60 text-white hover:bg-slate-800"
+            >
+              ← Back
+            </Button>
+          </Link>
+        </div>
+
+        {/* Login Card */}
+        <Card className="w-full max-w-md shadow-2xl rounded-2xl border border-slate-800 bg-[#0f172a]/80 backdrop-blur">
+          <CardContent className="p-8">
+
+            <h2 className="text-2xl font-bold text-center mb-6 text-white">
+              Login
+            </h2>
+
             {error && (
-              <Alert
-                variant="destructive"
-                className="mb-4"
-              >
+              <Alert variant="destructive" className="mb-4">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            {/* The login form - now connected to handleSubmit */}
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col gap-4"
-            >
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
               <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
+                <label className="block text-sm font-medium mb-1 text-slate-300">
+                  Email
+                </label>
+
                 <input
                   type="email"
                   placeholder="you@example.com"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-[#020617] border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-slate-300">
                   Password
                 </label>
+
                 <input
                   type="password"
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-[#020617] border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                 />
               </div>
+
               <Button
                 type="submit"
-                className="w-full mt-4"
+                className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg"
                 disabled={loading}
               >
                 {loading ? (
@@ -138,18 +133,19 @@ export default function LoginPage() {
                   "Log In"
                 )}
               </Button>
+
             </form>
-            <p className="text-sm text-gray-600 text-center mt-6">
+
+            <p className="text-sm text-slate-400 text-center mt-6">
               Don&apos;t have an account?{" "}
-              <Link
-                href="/support"
-                className="text-blue-600 hover:underline"
-              >
+              <Link href="/support" className="text-emerald-400 hover:underline">
                 Contact Admin
               </Link>
             </p>
+
           </CardContent>
         </Card>
+
       </div>
     </>
   );

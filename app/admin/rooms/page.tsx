@@ -47,23 +47,21 @@ export default function RoomManagement() {
   useEffect(() => {
     checkAuth();
     fetchRooms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterRooms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, rooms]);
 
   const checkAuth = () => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
+
     if (!token) {
       router.push("/login");
       return;
     }
 
-    // Set admin info
     if (user) {
       const userData = JSON.parse(user);
       setAdminName(userData.name || "Admin User");
@@ -169,9 +167,7 @@ export default function RoomManagement() {
   };
 
   const handleDelete = async (room: Room) => {
-    if (!confirm(`Are you sure you want to delete ${room.room_number}?`)) {
-      return;
-    }
+    if (!confirm(`Delete ${room.room_number}?`)) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -181,10 +177,7 @@ export default function RoomManagement() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to delete room");
-      }
+      if (!response.ok) throw new Error(data.error);
 
       setSuccess("Room deleted successfully");
       fetchRooms();
@@ -209,289 +202,123 @@ export default function RoomManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0f172a] via-[#0b1a33] to-[#020617]">
         <div className="text-lg text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <AdminLayout
-      adminName={adminName}
-      adminEmail={adminEmail}
-    >
+    <AdminLayout adminName={adminName} adminEmail={adminEmail}>
+
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Building2 className="w-6 h-6" />
+          <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-blue-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Room Management</h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-slate-400">
               Manage classroom locations and geofences
             </p>
           </div>
         </div>
+
         <Button
           onClick={() => setShowForm(true)}
-          className="bg-blue-600"
+          className="bg-emerald-500 hover:bg-emerald-600"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Room
         </Button>
       </div>
+
       {/* Alerts */}
       {error && (
-        <Alert
-          variant="destructive"
-          className="mb-4"
-        >
+        <Alert variant="destructive" className="mb-4">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
       {success && (
-        <Alert className="mb-4 bg-green-900/20 border-green-800">
-          <AlertDescription className="text-green-400">
+        <Alert className="mb-4 bg-emerald-900/20 border-emerald-800">
+          <AlertDescription className="text-emerald-400">
             {success}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>
-                {editingRoom ? "Edit Room" : "Add New Room"}
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={resetForm}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Room Number *</Label>
-                    <Input
-                      value={formData.room_number}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          room_number: e.target.value,
-                        })
-                      }
-                      placeholder="A101"
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <Label>Building *</Label>
-                    <Input
-                      value={formData.building}
-                      onChange={(e) =>
-                        setFormData({ ...formData, building: e.target.value })
-                      }
-                      placeholder="Main Block"
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Floor *</Label>
-                    <Input
-                      value={formData.floor}
-                      onChange={(e) =>
-                        setFormData({ ...formData, floor: e.target.value })
-                      }
-                      placeholder="1"
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <Label>Scanner ID *</Label>
-                    <Input
-                      value={formData.scanner_id}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          scanner_id: e.target.value,
-                        })
-                      }
-                      placeholder="SCANNER_001"
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Latitude *</Label>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={formData.latitude}
-                      onChange={(e) =>
-                        setFormData({ ...formData, latitude: e.target.value })
-                      }
-                      placeholder="28.6139"
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <Label>Longitude *</Label>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={formData.longitude}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          longitude: e.target.value,
-                        })
-                      }
-                      placeholder="77.2090"
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Geofence Radius (meters) *</Label>
-                  <Input
-                    type="number"
-                    value={formData.geofence_radius}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        geofence_radius: e.target.value,
-                      })
-                    }
-                    placeholder="50"
-                    required
-                    className="bg-gray-800 border-gray-700"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Students must be within this radius to mark attendance
-                  </p>
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={resetForm}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-blue-600"
-                  >
-                    {editingRoom ? "Update Room" : "Create Room"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Search */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <Input
-            placeholder="Search by room number, building, or scanner ID..."
+            placeholder="Search rooms..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-900 border-gray-800"
+            className="pl-10 bg-[#020617] border-slate-700"
           />
         </div>
       </div>
 
-      {/* Rooms Table */}
-      <Card className="bg-gray-900 border-gray-800">
+      {/* Table */}
+      <Card className="bg-[#0f172a]/80 border border-slate-800">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-gray-800">
-                <tr className="text-left">
-                  <th className="p-4 font-medium text-gray-400">Room Number</th>
-                  <th className="p-4 font-medium text-gray-400">Building</th>
-                  <th className="p-4 font-medium text-gray-400">Floor</th>
-                  <th className="p-4 font-medium text-gray-400">Scanner ID</th>
-                  <th className="p-4 font-medium text-gray-400">Location</th>
-                  <th className="p-4 font-medium text-gray-400">Geofence</th>
-                  <th className="p-4 font-medium text-gray-400">Actions</th>
+              <thead className="border-b border-slate-800">
+                <tr className="text-left text-slate-400">
+                  <th className="p-4">Room</th>
+                  <th className="p-4">Building</th>
+                  <th className="p-4">Floor</th>
+                  <th className="p-4">Scanner</th>
+                  <th className="p-4">Location</th>
+                  <th className="p-4">Radius</th>
+                  <th className="p-4">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredRooms.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="p-8 text-center text-gray-400"
-                    >
-                      No rooms found. Click &quot;Add Room&quot; to create one.
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
+                      No rooms found
                     </td>
                   </tr>
                 ) : (
                   filteredRooms.map((room) => (
                     <tr
                       key={room._id}
-                      className="border-b border-gray-800 hover:bg-gray-800/50"
+                       className="border-b border-slate-800 hover:bg-slate-800/40 text-slate-300"
                     >
-                      <td className="p-4 font-medium">{room.room_number}</td>
+                      <td className="p-4 font-medium text-white">
+                        {room.room_number}
+                      </td>
                       <td className="p-4">{room.building}</td>
                       <td className="p-4">{room.floor}</td>
                       <td className="p-4">
-                        <code className="text-xs bg-gray-800 px-2 py-1 rounded">
+                        <code className="text-xs bg-slate-800 px-2 py-1 rounded">
                           {room.scanner_id}
                         </code>
                       </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1 text-sm text-gray-400">
-                          <MapPin className="w-3 h-3" />
-                          {room.latitude.toFixed(4)},{" "}
-                          {room.longitude.toFixed(4)}
-                        </div>
+                      <td className="p-4 text-sm text-slate-400 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {room.latitude.toFixed(4)}, {room.longitude.toFixed(4)}
                       </td>
                       <td className="p-4">{room.geofence_radius}m</td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(room)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(room)}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                      <td className="p-4 flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(room)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(room)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -502,10 +329,10 @@ export default function RoomManagement() {
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="mt-4 text-sm text-gray-400">
+      <div className="mt-4 text-sm text-slate-400">
         Showing {filteredRooms.length} of {rooms.length} rooms
       </div>
+
     </AdminLayout>
   );
 }

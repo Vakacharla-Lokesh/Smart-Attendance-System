@@ -11,89 +11,121 @@ export default function Page() {
   return (
     <>
       <Analytics />
-      <div className="min-h-screen flex flex-col bg-gradient-to-b font-sans bg-black">
+
+      <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-[#0f172a] via-[#0b1a33] to-[#020617] text-white">
+
         {/* Navbar */}
-        <nav className="w-full flex items-center justify-between px-6 py-4 shadow-sm bg-black">
-          <h1 className="text-xl font-bold">Smart Attendance</h1>
+        <nav className="flex items-center justify-between px-8 py-4 bg-[#0b1120]/80 backdrop-blur border-b border-slate-800">
+          <h1 className="text-xl font-bold text-white">
+            Smart Attendance
+          </h1>
+
           <Link href="/login">
-            <Button variant="default">Login</Button>
+            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 rounded-lg shadow">
+              Login
+            </Button>
           </Link>
         </nav>
 
-        {/* Hero Section */}
-        <section className="flex flex-col items-center justify-center text-center py-20 px-6 bg-black">
-          <h1 className="text-5xl font-bold tracking-tight mb-4">
-            Smart RFID Attendance System
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl">
-            IoT-powered solution with real-time monitoring, geolocation
-            tracking, and anti-proxy authentication for secure attendance.
-          </p>
-          <Button className="mt-8 text-lg px-6 py-3">Get Started</Button>
-        </section>
+        {/* MAIN GRID */}
+        <div className="flex-1 grid grid-cols-2 gap-8 px-12 py-8 max-w-7xl mx-auto w-full">
 
-        {/* Features Section */}
-        <section className="py-16 px-6 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto bg-black">
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="flex flex-col items-center text-center p-6">
-              <CheckCircle className="w-10 h-10 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">RFID Integration</h3>
-              <p className="text-gray-600">
-                Seamless RFID-based attendance logging with real-time updates.
-              </p>
-            </CardContent>
-          </Card>
+          {/* LEFT PANEL */}
+          <div className="flex flex-col justify-center">
 
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="flex flex-col items-center text-center p-6">
-              <MapPin className="w-10 h-10 text-green-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">
-                Geolocation Tracking
-              </h3>
-              <p className="text-gray-600">
-                Ensure accurate attendance by validating location at check-in.
-              </p>
-            </CardContent>
-          </Card>
+            <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+              Smart RFID
+              <br />
+              Attendance System
+            </h1>
 
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="flex flex-col items-center text-center p-6">
-              <Shield className="w-10 h-10 text-red-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">
-                Anti-Proxy Security
-              </h3>
-              <p className="text-gray-600">
-                Prevent fraudulent attendance with advanced anti-proxy checks.
-              </p>
-            </CardContent>
-          </Card>
-        </section>
+            <p className="text-slate-300 text-lg max-w-lg mb-8">
+              IoT-powered attendance platform with RFID scanning,
+              geolocation verification, and anti-proxy security
+              for modern classrooms.
+            </p>
 
-        {/* How It Works */}
-        <section className="py-16 px-6 bg-black shadow-inner">
-          <h2 className="text-3xl font-bold text-center mb-10">How It Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {[
-              "Tap RFID card at scanner",
-              "Verify location & identity",
-              "Attendance logged in real-time",
-            ].map((step, i) => (
-              <Card
-                key={i}
-                className="rounded-2xl shadow-md"
-              >
-                <CardContent className="p-6 text-center font-medium text-gray-700">
-                  <span className="text-2xl font-bold text-blue-600">
-                    {i + 1}
-                  </span>
-                  <p className="mt-4">{step}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Link href="/login">
+              <Button className="w-fit px-8 py-6 text-lg bg-emerald-500 hover:bg-emerald-600 shadow-lg rounded-lg">
+                Get Started
+              </Button>
+            </Link>
+
           </div>
-        </section>
 
-        <Footer />
+          {/* RIGHT PANEL */}
+          <div className="grid grid-cols-2 gap-6">
+
+            {/* Feature Cards */}
+
+            <Card className="rounded-2xl bg-[#0f172a]/70 border border-slate-800 hover:border-slate-700 hover:shadow-xl transition">
+              <CardContent className="p-6 text-center">
+                <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+                <h3 className="font-semibold mb-2 text-white">RFID Integration</h3>
+                <p className="text-sm text-slate-400">
+                  Automatic RFID-based attendance logging
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl bg-[#0f172a]/70 border border-slate-800 hover:border-slate-700 hover:shadow-xl transition">
+              <CardContent className="p-6 text-center">
+                <MapPin className="w-10 h-10 text-green-400 mx-auto mb-3" />
+                <h3 className="font-semibold mb-2 text-white">Location Validation</h3>
+                <p className="text-sm text-slate-400">
+                  Verify attendance using geolocation
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl bg-[#0f172a]/70 border border-slate-800 hover:border-slate-700 hover:shadow-xl transition">
+              <CardContent className="p-6 text-center">
+                <Shield className="w-10 h-10 text-red-400 mx-auto mb-3" />
+                <h3 className="font-semibold mb-2 text-white">Anti-Proxy Security</h3>
+                <p className="text-sm text-slate-400">
+                  Prevent proxy attendance attempts
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Steps Card */}
+            <Card className="rounded-2xl bg-[#0f172a]/70 border border-slate-800">
+              <CardContent className="p-6">
+
+                <h3 className="font-semibold mb-4 text-center text-white">
+                  How It Works
+                </h3>
+
+                <div className="space-y-3 text-sm text-slate-400">
+
+                  <div className="flex gap-3">
+                    <span className="font-bold text-emerald-400">1</span>
+                    Tap RFID card at scanner
+                  </div>
+
+                  <div className="flex gap-3">
+                    <span className="font-bold text-emerald-400">2</span>
+                    Verify location & identity
+                  </div>
+
+                  <div className="flex gap-3">
+                    <span className="font-bold text-emerald-400">3</span>
+                    Attendance logged instantly
+                  </div>
+
+                </div>
+
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+
+        {/* Footer */}
+        <footer className="text-center text-sm text-slate-500 py-4 border-t border-slate-800">
+          © 2026 Smart Attendance System
+        </footer>
+
       </div>
     </>
   );

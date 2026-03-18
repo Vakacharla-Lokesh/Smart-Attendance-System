@@ -15,7 +15,7 @@ export default function AdminLayout({
   adminEmail,
 }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-slate-200">
       <AdminSidebar
         adminName={adminName}
         adminEmail={adminEmail}
@@ -23,13 +23,17 @@ export default function AdminLayout({
 
       {/* Main Content Area */}
       <main className="lg:pl-72 min-h-screen">
+        
         {/* Mobile spacing for header */}
         <div className="lg:hidden h-14" />
 
-        {/* Content wrapper with padding and max-width */}
+        {/* Content wrapper */}
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </div>
+
       </main>
     </div>
   );

@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera } from "lucide-react";
-import CameraCapture from "@/components/CameraCapture";
 
 export default function StudentProfilePage() {
   const params = useParams();
@@ -18,20 +16,12 @@ export default function StudentProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
   
-  // States for student info
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [photo, setPhoto] = useState<string | null>(null);
-  
-  // States for password
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
-  // Camera state
-  const [showCamera, setShowCamera] = useState(false);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchStudent() {
@@ -42,7 +32,6 @@ export default function StudentProfilePage() {
           const student = json.data || json;
           setName(student.name || "");
           setEmail(student.email || "");
-          setPhoto(student.profile_photo || student.photoUrl || null);
         }
       } catch (error) {
         console.error("Failed to load student", error);
@@ -53,36 +42,7 @@ export default function StudentProfilePage() {
     fetchStudent();
   }, [id]);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ text: "File size must be less than 5MB", type: "error" });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setPhoto(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleCameraCapture = (blob: Blob) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setPhoto(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(blob);
-    setShowCamera(false);
-  };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMessage({ text: "", type: "" });
@@ -91,7 +51,7 @@ export default function StudentProfilePage() {
       const res = await fetch(`/api/students/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, profile_photo: photo }),
+        body: JSON.stringify({ name }),
       });
 
       if (res.ok) {
@@ -107,7 +67,7 @@ export default function StudentProfilePage() {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     setMessage({ text: "", type: "" });
 
@@ -146,18 +106,18 @@ export default function StudentProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#020617] text-white">
         <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-6 bg-background text-foreground">
+    <div className="min-h-screen py-6 bg-[#020617] text-white">
       <div className="container mx-auto px-4 max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
           <Link href={`/student/${id}`}>
-            <Button className="!border !border-border" variant="ghost">
+            <Button className="!border !border-white/10 text-white hover:bg-white/10" variant="ghost">
               ← Back to Dashboard
             </Button>
           </Link>
@@ -168,8 +128,8 @@ export default function StudentProfilePage() {
           <div
             className={`mb-6 p-4 rounded-md border ${
               message.type === "error"
-                ? "bg-red-500/10 border-red-500/50 text-red-500"
-                : "bg-green-500/10 border-green-500/50 text-green-500"
+                ? "bg-red-500/10 border-red-500/50 text-red-400"
+                : "bg-green-500/10 border-green-500/50 text-green-400"
             }`}
           >
             {message.text}
@@ -177,87 +137,46 @@ export default function StudentProfilePage() {
         )}
 
         <div className="space-y-6">
-          <Card>
+          <Card className="bg-[#0f172a] border border-white/10 text-white">
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal details and public photo.</CardDescription>
+              <CardDescription className="text-white/50">
+                Update your personal details and public photo.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSaveProfile} className="space-y-6">
                 <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+
+                  {/* ✅ AVATAR (REPLACED PHOTO UI) */}
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-24 h-24 rounded-full bg-[#121212] flex items-center justify-center overflow-hidden border border-border relative group">
-                      {photo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={photo} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="text-xl font-semibold text-muted-foreground">
-                          {name?.split(" ").map((n) => n[0]).join("") || "N"}
-                        </div>
-                      )}
-                      <div 
-                        className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <span className="text-white text-xs">Change</span>
+                    <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center border border-white/10">
+                      <div className="text-xl font-semibold text-emerald-400">
+                        {name?.split(" ").map((n) => n[0]).join("") || "N"}
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Upload Photo
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setShowCamera(true)}
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        Take Photo
-                      </Button>
-                    </div>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                    />
-
-                    <CameraCapture
-                      open={showCamera}
-                      onClose={() => setShowCamera(false)}
-                      onCapture={handleCameraCapture}
-                      title="Take Profile Photo"
-                      description="Position your face inside the frame and capture."
-                      confirmText="Use Photo"
-                    />
                   </div>
 
                   <div className="flex-1 space-y-4 w-full">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
+                      <Label htmlFor="name" className="text-white/80">Full Name</Label>
                       <Input 
                         id="name" 
                         value={name} 
                         onChange={(e) => setName(e.target.value)} 
                         required 
+                        className="bg-[#020617] border-white/10 text-white"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className="text-white/80">Email</Label>
                       <Input 
                         id="email" 
                         value={email} 
                         disabled 
-                        className="bg-muted/50"
+                        className="bg-[#020617] border-white/10 text-white/50"
                       />
-                      <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
+                      <p className="text-xs text-white/40">Email cannot be changed.</p>
                     </div>
                   </div>
                 </div>
@@ -271,41 +190,48 @@ export default function StudentProfilePage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#0f172a] border border-white/10 text-white">
             <CardHeader>
               <CardTitle>Security</CardTitle>
-              <CardDescription>Change your password to keep your account secure.</CardDescription>
+              <CardDescription className="text-white/50">
+                Change your password to keep your account secure.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="currentPassword" className="text-white/80">Current Password</Label>
                   <Input 
                     id="currentPassword" 
                     type="password" 
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="bg-[#020617] border-white/10 text-white"
                   />
-                  <p className="text-xs text-muted-foreground">Leave blank if you don&apos;t remember, but it&apos;s recommended to provide it.</p>
+                  <p className="text-xs text-white/40">
+                    Leave blank if you don&apos;t remember, but it&apos;s recommended to provide it.
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPassword" className="text-white/80">New Password</Label>
                   <Input 
                     id="newPassword" 
                     type="password" 
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
+                    className="bg-[#020617] border-white/10 text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-white/80">Confirm New Password</Label>
                   <Input 
                     id="confirmPassword" 
                     type="password" 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    className="bg-[#020617] border-white/10 text-white"
                   />
                 </div>
                 <div className="flex justify-end pt-2">

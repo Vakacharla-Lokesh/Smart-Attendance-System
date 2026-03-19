@@ -966,54 +966,56 @@ export default function HomePage() {
 
       </div>
 
-      <div className="p-4 flex flex-col items-center gap-4">
-        {!capturedImage ? (
-          <>
-            <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                playsInline
-                muted
-              />
-            </div>
-            <button
-              onClick={capturePhoto}
-              className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base transition-all shadow-md"
-            >
-              📸 Capture Photo
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={capturedImage}
-                className="w-full h-full object-cover"
-                alt="Captured"
-              />
-            </div>
-            <div className="flex gap-3 w-full">
+      {showCamera && (
+        <div className="p-4 flex flex-col items-center gap-4">
+          {!capturedImage ? (
+            <>
+              <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  playsInline
+                  muted
+                />
+              </div>
               <button
-                onClick={retakePhoto}
-                className="flex-1 py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
+                onClick={capturePhoto}
+                className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base transition-all shadow-md"
               >
-                Retake
+                📸 Capture Photo
               </button>
-              <button
-                onClick={() => submitPunchOut(capturedImage)}
-                disabled={punchStatus === "loading"}
-                className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-60"
-              >
-                {punchStatus === "loading"
-                  ? "Submitting…"
-                  : "Confirm & Punch Out"}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          ) : (
+            <>
+              <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={capturedImage}
+                  className="w-full h-full object-cover"
+                  alt="Captured"
+                />
+              </div>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={retakePhoto}
+                  className="flex-1 py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
+                >
+                  Retake
+                </button>
+                <button
+                  onClick={() => submitPunchOut(capturedImage)}
+                  disabled={punchStatus === "loading"}
+                  className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-60"
+                >
+                  {punchStatus === "loading"
+                    ? "Submitting…"
+                    : "Confirm & Punch Out"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
